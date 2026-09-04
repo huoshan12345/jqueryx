@@ -7,12 +7,28 @@ declare global {
     from(selector: Nullishable<OneOrMany<string | JQuery>>): JQuery;
     from<T extends Element>(element: Nullishable<OneOrMany<T>>): JQuery<T>;
     isJQuery<T extends Element = HTMLElement>(value: unknown): value is JQuery<T>;
+    isElement(value: unknown): value is Element
   }
 }
 
 $.isJQuery = function <T extends Element = HTMLElement>(value: unknown): value is JQuery<T> {
   return !!value && typeof value === 'object' && 'jquery' in value;
-}
+};
+
+$.isElement = function (value: unknown): value is Element {
+  if (value == null || typeof value !== "object") {
+    return false;
+  }
+
+  const maybeNode = value as {
+    ownerDocument?: {
+      defaultView?: (Window & typeof globalThis) | null;
+    };
+  };
+
+  const win = maybeNode.ownerDocument?.defaultView;
+  return !!win && value instanceof win.Element;
+};
 
 $.search = function (selector: string, checkIframesIfEmpty: boolean = true): JQuery {
   let result = $(selector);
@@ -65,7 +81,7 @@ function from<T extends Element>(items: Nullishable<OneOrMany<string | JQuery | 
     return items;
   }
 
-  if (ElementHelper.isElement(items)) {
+  if ($.isElement(items)) {
     return $(items);
   }
 

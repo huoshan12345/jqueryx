@@ -1,4 +1,4 @@
-import type { ClickOptions, JQueryMutationCallback } from '@/types/lib';
+import { ClickOptions, type JQueryMutationCallback } from '@/types/lib';
 import { Enumerable } from 'linqx';
 import type { Awaitable, HTMLNode, MatchPattern, MutationObserverOptionsInit, Nullishable } from 'builtinx';
 import { Queue } from 'builtinx';
@@ -28,19 +28,16 @@ declare global {
     replaceBy(replacement: (node: JQuery) => JQuery): JQuery;
     ifEmpty(selector: string): JQuery;
     where(predicate: (e: HTMLElement, index: number) => Nullishable<boolean>): JQuery;
-    eliminate(hide?: boolean, log?: boolean): JQuery;
     search(selector: string, checkIframesIfEmpty?: boolean): JQuery;
     enumerate(): Enumerable.IEnumerable<JQuery>;
     ownText(): string;
     ownText(value: string): JQuery;
     tap(action: (node: JQuery) => void): JQuery;
     tapIf(condition: (node: JQuery) => boolean, action: (node: JQuery) => void): JQuery;
-    renderMagnetLinks(): JQuery;
     collapseBrs(): JQuery;
     refineUrls(hosts: MatchPattern[], baseUrl: URL, pathRewrite?: (path: string) => string): JQuery;
     isNewLineTextNode<T extends Node>(this: JQuery<T>): boolean;
     trimLeadingBrs(): JQuery;
-    refineEd2kLinks(): JQuery;
   }
 }
 
@@ -301,11 +298,6 @@ $.fn.where = function (predicate: (e: HTMLElement, index: number) => Nullishable
   return this.filter((i, e) => predicate(e, i) === true);
 };
 
-$.fn.eliminate = function (hide: boolean = false, log: boolean = true) {
-  this.each((i, e) => { e.eliminate(hide, log); });
-  return this;
-};
-
 $.fn.search = function (selector: string, checkIframesIfEmpty: boolean = true): JQuery {
   let result = this.find(selector);
   if (result.isEmpty() && checkIframesIfEmpty) {
@@ -367,49 +359,6 @@ $.fn.tapIf = function (condition: (node: JQuery) => boolean, action: (node: JQue
     action(this);
   }
   return this;
-};
-
-$.fn.renderMagnetLinks = function () {
-  for (const node of this.enumerate()) {
-    for (const textNode of node.textNodes().enumerate()) {
-      renderMagnetLink(textNode);
-    }
-  }
-
-  return this;
-
-  function renderMagnetLink(textNode: JQuery) {
-    if (textNode.ancestor('a, button, textarea').isNotEmpty()) {
-      return;
-    }
-
-    const text = textNode.text().unescapeHtml(); // 需要反转义
-    let html = text.replace(TorrentHelper.regMagnetUrl, (m, v1, v2) => {
-      return `<a data-type="magnet" hash="${v2}">${v1}${v2}</a>`;
-    });
-
-    if (text === html) {
-      html = text.replace(TorrentHelper.regMagnetHash, (m) => {
-        return `<a data-type="magnet" hash="${m}">${m}</a>`;
-      });
-    }
-
-    if (text !== html) {
-      const newNodes = $.parseHTML(html);
-      const [first, ...rest] = newNodes;
-      textNode.replaceWith(first);
-      const firstJq = $(first);
-      firstJq.after(rest);
-
-      for (const node of newNodes) {
-        const jq = $(node);
-        if (jq.is('a[hash]')) {
-          jq.voidHref()
-            .onClick(e => TorrentHelper.copyMagnetUrl(e.getAttribute('hash')), { disableWhileProcessing: false });
-        }
-      }
-    }
-  }
 };
 
 $.fn.collapseBrs = function () {
@@ -515,7 +464,6 @@ $.fn.isNewLineTextNode = function <T extends Node>(this: JQuery<T>): boolean {
 };
 
 $.fn.trimLeadingBrs = function () {
-  console.log(this.length);
   this.each((i, e) => { e.trimLeadingBrs(); });
   return this;
 };
