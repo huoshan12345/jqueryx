@@ -1,0 +1,166 @@
+name: Build
+on:
+  push:
+    branches:
+      - main
+  pull_request:
+    branches:
+      - main
+
+permissions:
+  pull-requests: write
+  contents: write
+  statuses: write
+  checks: write
+  actions: write
+  id-token: write
+
+env:
+  DOTNET_NOLOGO: 1
+  IS_MAIN_PUSH: ${{ github.event_name == 'push' && github.ref == 'refs/heads/main' }}
+
+jobs:
+  changes:
+    runs-on: ubuntu-latest
+    outputs:
+      should-build: ${{ steps.filter.outputs.build }}
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v6
+
+      - name: Check changed files
+        id: filter
+        uses: dorny/paths-filter@v4
+        with:
+          filters: |
+            build:
+              - '**/*.js'
+              - '**/*.ts'
+              - '**/package.json'
+              - '**/src/**'
+              - '**/test/**'
+              - '**/tsconfig.*.json'
+              - '**/tsconfig.json'
+              - .github/workflows/build.yml
+
+  build:
+    runs-on: ubuntu-latest
+    if: needs.changes.outputs.should-build == 'true'
+
+    needs:
+      - changes
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v6
+
+      - name: Read version from package.json
+        shell: bash
+        run: |
+          VERSION=$(node -p "require('./package.json').version")
+          NAME=$(node -p "require('./package.json').name")
+          echo "VERSION=$VERSION" >> "$GITHUB_ENV"
+          echo "NAME=$NAME" >> "$GITHUB_ENV"
+          echo "VERSION: $VERSION"
+          echo "NAME: $NAME"
+
+      - name: Setup pnpm
+        uses: pnpm/action-setup@v6
+        with:
+          version: 10
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v6
+        with:
+          node-version: 24
+          registry-url: 'https://registry.npmjs.org'
+          cache: 'pnpm'
+
+      - name: Install dependencies with pnpm
+        run: pnpm install --frozen-lockfile
+
+      - name: Run tests with pnpm
+        run: pnpm test
+
+      - name: Publish with pnpm
+        if: ${{ env.IS_MAIN_PUSH == 'true' }}
+        run: |
+          if npm view "${{ env.NAME }}@${{ env.VERSION }}" version > /dev/null 2>&1; then
+            echo "Version ${{ env.VERSION }} already exists on npm. Skipping publish."
+          else
+            echo "Publishing version ${{ env.VERSION }} to npm..."
+            pnpm build
+            pnpm publish --no-git-checks --access public --provenance
+          fi
+
+      - name: Create Tag
+        if: ${{ env.IS_MAIN_PUSH == 'true' }}
+        uses: huoshan12345/update-tag@v1
+        with:
+          tag_name: ${{ env.VERSION }}
+          update_if_exists: false
+        env:
+          GITHUB_TOKEN: ${{ secrets.PAT }}
+
+      - name: Create Release
+        if: ${{ env.IS_MAIN_PUSH == 'true' }}
+        uses: ncipollo/release-action@v1
+        with:
+          name: ${{ env.VERSION }}
+          tag: ${{ env.VERSION }}
+          token: ${{ secrets.PAT }}
+          skipIfReleaseExists: true
+          generateReleaseNotes: true
+
+  build-result:
+    if: always()
+    runs-on: ubuntu-latest
+
+    needs:
+      - changes
+      - build
+
+    steps:
+      - name: Check result
+        shell: pwsh
+        run: |
+          $shouldBuild = "${{ needs.changes.outputs.should-build }}" -eq "true"
+
+          $jobs = @(
+            @{
+              Name = "build"
+              Result = "${{ needs.build.result }}"
+              AllowSkipped = -not $shouldBuild
+            },
+            @{
+              Name = "changes"
+              Result = "${{ needs.changes.result }}"
+              AllowSkipped = $false
+            }
+          )
+
+          $invalidJobs = @()
+
+          foreach ($job in $jobs) {
+            Write-Host "$($job.Name): $($job.Result)"
+
+            $isValid =
+              $job.Result -eq "success" -or
+              ($job.Result -eq "skipped" -and $job.AllowSkipped)
+
+            if (-not $isValid) {
+              $invalidJobs += $job
+            }
+          }
+
+          if ($invalidJobs.Count -gt 0) {
+            Write-Host "Invalid job results:"
+
+            foreach ($job in $invalidJobs) {
+              Write-Host "- $($job.Name): $($job.Result)"
+            }
+
+            exit 1
+          }
+...

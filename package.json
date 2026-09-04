@@ -1,0 +1,55 @@
+{
+  "name": "jqueryx",
+  "author": "huoshan12345",
+  "version": "0.0.1",
+  "description": "Extensions for JavaScript built-ins and web platform objects",
+  "homepage": "https://github.com/huoshan12345/jqueryx#readme",
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/huoshan12345/jqueryx.git"
+  },
+  "type": "module",
+  "main": "dist/index.js",
+  "types": "dist/index.d.ts",
+  "exports": {
+    ".": "./dist/index.js"
+  },
+  "files": [
+    "dist",
+    "README.md",
+    "LICENSE"
+  ],
+  "scripts": {
+    "prepack": "pinst --disable",
+    "postpack": "pinst --enable",
+    "preinstall": "npx only-allow pnpm",
+    "clean": "shx rm -rf dist/** && shx rm -f *.tgz",
+    "dev": "run-s type-check:watch",
+    "build": "run-s clean && run-s build:ts && run-s build:dts",
+    "build:ts": "run-s type-check && vite build",
+    "build:dts": "tsc -p tsconfig.build.json && tsc-alias -p tsconfig.build.json",
+    "test": "vitest run",
+    "test:watch": "vitest",
+    "type-check": "tsc --noEmit",
+    "type-check:watch": "tsc --noEmit --watch",
+    "ncu": "npx npm-check-updates -u",
+    "p": "run-s build && pnpm pack"
+  },
+  "devDependencies": {
+    "@phiberber/pinst": "^3.0.1",
+    "@types/jquery": "^4.0.1",
+    "@types/node": "^26.4.1",
+    "npm-run-all2": "^9.0.3",
+    "shx": "^0.4.0",
+    "tsc-alias": "^1.9.4",
+    "typescript": "^7.0.2",
+    "vite": "^8.2.2",
+    "vitest": "^5.0.0",
+    "vitest-canvas-mock": "^1.1.5"
+  },
+  "dependencies": {
+    "builtinx": "^0.2.2",
+    "jquery": "^4.0.0",
+    "linqx": "^0.2.1"
+  }
+}
