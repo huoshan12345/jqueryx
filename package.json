@@ -37,8 +37,8 @@
   },
   "devDependencies": {
     "@phiberber/pinst": "^3.0.1",
-    "@types/jquery": "^4.0.1",
     "@types/node": "^26.4.1",
+    "jquery": "^4.0.0",
     "npm-run-all2": "^9.0.3",
     "shx": "^0.4.0",
     "tsc-alias": "^1.9.4",
@@ -48,8 +48,11 @@
     "vitest-canvas-mock": "^1.1.5"
   },
   "dependencies": {
+    "@types/jquery": "^4.0.1",
     "builtinx": "^0.2.2",
-    "jquery": "^4.0.0",
     "linqx": "^0.2.1"
+  },
+  "peerDependencies": {
+    "jquery": "^4.0.0"
   }
 }

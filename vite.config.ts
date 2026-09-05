@@ -11,6 +11,9 @@ export default defineConfig({
   plugins: [
   ],
   build: {
+    rolldownOptions: {
+      external: ['jquery'],
+    },
     lib: {
       entry: {
         index: resolve(dir, 'src/index.ts'),
