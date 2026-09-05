@@ -1,40 +1,61 @@
-import type { JQueryMutationCallback } from '@/types/lib';
 import { Enumerable } from 'linqx';
-import type { HTMLNode, MatchPattern, MutationObserverOptionsInit, Nullishable } from 'builtinx';
+import type { HTMLNode, MatchPattern, Nullishable } from 'builtinx';
 import { Queue } from 'builtinx';
 
 declare global {
-  interface JQuery {
+  interface JQuery<TElement = HTMLElement> {
     isNot(selector: string): boolean;
-    throwIfEmpty(): JQuery;
+    throwIfEmpty(): this;
     isEmpty(): boolean;
     isNotEmpty(): boolean;
-    ancestor(selector: string, outermost?: boolean, includeSelf?: boolean): JQuery;
-    textNodes(selector?: string, skipTags?: string[], skipAnchor?: boolean): JQuery<HTMLNode>;
-    visible(): boolean;
-    visible(value: boolean): JQuery;
+    ancestor(
+      this: this & JQuery<Element>,
+      selector: string,
+      outermost?: boolean,
+      includeSelf?: boolean,
+    ): JQuery<Element>;
+    textNodes(
+      this: this & JQuery<Node>,
+      selector?: string,
+      skipTags?: string[],
+      skipAnchor?: boolean,
+    ): JQuery<HTMLNode>;
+    visible(this: this & JQuery<Element>): boolean;
+    visible(this: this & JQuery<Element>, value: boolean): this;
     checked(): boolean;
-    entries(): IterableIterator<[number, HTMLElement]>;
-    onNodeExists(selector: string, func: (node: JQuery) => void, maxCount?: number): void;
-    observe(callback: JQueryMutationCallback, options?: Partial<MutationObserverOptionsInit>): JQuery;
-    asEnumerable(): Enumerable.IEnumerable<HTMLElement>;
-    replaceBy(replacement: (node: JQuery) => JQuery): JQuery;
-    ifEmpty(selector: string): JQuery;
-    where(predicate: (e: HTMLElement, index: number) => Nullishable<boolean>): JQuery;
-    search(selector: string, checkIframesIfEmpty?: boolean): JQuery;
-    enumerate(): Enumerable.IEnumerable<JQuery>;
-    ownText(): string;
-    ownText(value: string): JQuery;
-    tap(action: (node: JQuery) => void): JQuery;
-    tapIf(condition: (node: JQuery) => boolean, action: (node: JQuery) => void): JQuery;
-    collapseBrs(): JQuery;
-    refineUrls(hosts: MatchPattern[], baseUrl: URL, pathRewrite?: (path: string) => string): JQuery;
-    isNewLineTextNode<T extends Node>(this: JQuery<T>): boolean;
-    trimLeadingBrs(): JQuery;
+    entries(): IterableIterator<[number, TElement]>;
+    onNodeExists(
+      this: this & JQuery<Node>,
+      selector: string,
+      func: (node: JQuery) => void,
+      maxCount?: number,
+    ): void;
+    asEnumerable(): Enumerable.IEnumerable<TElement>;
+    replaceBy<TReplacement extends Element>(
+      this: this & JQuery<Element>,
+      replacement: (node: this) => JQuery<TReplacement>,
+    ): JQuery<TReplacement>;
+    ifEmpty(selector: string): JQuery<TElement | HTMLElement>;
+    where(predicate: (e: TElement, index: number) => Nullishable<boolean>): JQuery<TElement>;
+    search(this: this & JQuery<Node>, selector: string, checkIframesIfEmpty?: boolean): JQuery;
+    enumerate(): Enumerable.IEnumerable<JQuery<TElement>>;
+    ownText(this: this & JQuery<Node>): string;
+    ownText(this: this & JQuery<Node>, value: string): this;
+    tap(action: (node: this) => void): this;
+    tapIf(condition: (node: this) => boolean, action: (node: this) => void): this;
+    collapseBrs(this: this & JQuery<Element>): this;
+    refineUrls(
+      this: this & JQuery<Element>,
+      hosts: MatchPattern[],
+      baseUrl: URL,
+      pathRewrite?: (path: string) => string,
+    ): this;
+    isNewLineTextNode(this: this & JQuery<Node>): boolean;
+    trimLeadingBrs(this: this & JQuery<Element>): this;
   }
 }
 
-$.fn.throwIfEmpty = function (): JQuery {
+$.fn.throwIfEmpty = function () {
   if (this.isEmpty()) {
     Error.throw('The set is empty');
   }
@@ -49,21 +70,21 @@ $.fn.isNotEmpty = function (): boolean {
   return this.length !== 0;
 };
 
-$.fn.ancestor = function (selector: string, outermost = false, includeSelf = false): JQuery {
-  let result = $();
+$.fn.ancestor = function (selector: string, outermost = false, includeSelf = false): JQuery<Element> {
+  let result = $<Element>();
   this.each((i, e) => {
     const p = findAncestor(e, outermost, includeSelf);
-    result = result.add(p);
+    result = result.add(p.toArray());
   });
   return result;
 
-  function findAncestor(e: HTMLElement, outermost: boolean, includeSelf: boolean) {
+  function findAncestor(e: Element, outermost: boolean, includeSelf: boolean) {
     const node = $(e);
     let p = includeSelf
       ? node
       : node.parent();
 
-    let result = $();
+    let result = $<Element>();
     while (p.isNotEmpty()) {
       if (p.is(selector)) {
         result = p;
@@ -93,7 +114,7 @@ $.fn.textNodes = function (selector?: string, skipTags?: string[], skipAnchor: b
     skipTags.remove('a');
   }
 
-  const queue = new Queue<HTMLElement>();
+  const queue = new Queue<Node>();
   for (const element of this) {
     queue.enqueue(element);
   }
@@ -112,14 +133,14 @@ $.fn.textNodes = function (selector?: string, skipTags?: string[], skipAnchor: b
     }
 
     if (node.nodeType === Node.TEXT_NODE) {
-      result = result.add(node);
+      result = result.add(node as Text);
     }
 
     for (const node of jquery.contents()) {
       if (node.nodeType === Node.ELEMENT_NODE) {
-        queue.enqueue(node as HTMLElement);
+        queue.enqueue(node);
       } else if (node.nodeType === Node.TEXT_NODE) {
-        result = result.add(node);
+        result = result.add(node as Text);
       }
     }
   }
@@ -127,9 +148,9 @@ $.fn.textNodes = function (selector?: string, skipTags?: string[], skipAnchor: b
   return result;
 };
 
-function visible(this: JQuery): boolean;
-function visible(this: JQuery, value: boolean): JQuery;
-function visible(this: JQuery, value?: boolean): JQuery | boolean {
+function visible(this: JQuery<Element>): boolean;
+function visible<T extends JQuery<Element>>(this: T, value: boolean): T;
+function visible<T extends JQuery<Element>>(this: T, value?: boolean): T | boolean {
   if (value == undefined) {
     return this.is(":visible");
   } else if (value) {
@@ -152,7 +173,7 @@ $.fn.entries = function* () {
   }
 };
 
-function onNodeExists(jq: JQuery, selector: string, func: (node: JQuery) => void, maxCount: number, count: number) {
+function onNodeExists(jq: JQuery<Node>, selector: string, func: (node: JQuery) => void, maxCount: number, count: number) {
   // console.log(`selector: ${selector}, maxCount: ${maxCount}, count: ${count}`);
 
   if (count >= maxCount)
@@ -173,13 +194,6 @@ $.fn.onNodeExists = function (selector: string, func: (node: JQuery) => void, ma
   return onNodeExists(this, selector, func, maxCount, 0);
 };
 
-$.fn.observe = function (callback: JQueryMutationCallback, options?: Partial<MutationObserverOptionsInit>) {
-  const jQuery = this;
-  // 对于iframe里面的元素Node有自己的prototype, 所以这里用apply的方式调用
-  this.each((i, e) => { Node.prototype.observe.apply(e, [(m, n, _) => callback(m, n, jQuery), options]); });
-  return jQuery;
-};
-
 function* enumerate<T>(j: JQuery<T>) {
   for (const value of j) {
     yield value;
@@ -191,9 +205,12 @@ $.fn.asEnumerable = function <TElement = HTMLElement>(this: JQuery<TElement>): E
   return Enumerable.from(e);
 };
 
-$.fn.replaceBy = function (replacement: (node: JQuery) => JQuery) {
+$.fn.replaceBy = function <T extends JQuery<Element>, TReplacement extends Element>(
+  this: T,
+  replacement: (node: T) => JQuery<TReplacement>,
+) {
   let newNodes = replacement(this);
-  if (newNodes === this) {
+  if (Object.is(newNodes, this)) {
     newNodes = newNodes.clone();
 
     for (let i = 0; i < this.length; i++) {
@@ -209,11 +226,14 @@ $.fn.replaceBy = function (replacement: (node: JQuery) => JQuery) {
   return newNodes;
 };
 
-$.fn.ifEmpty = function (selector: string) {
+$.fn.ifEmpty = function <TElement>(this: JQuery<TElement>, selector: string): JQuery<TElement | HTMLElement> {
   return this.isEmpty() ? $(selector) : this;
 };
 
-$.fn.where = function (predicate: (e: HTMLElement, index: number) => Nullishable<boolean>) {
+$.fn.where = function <TElement>(
+  this: JQuery<TElement>,
+  predicate: (e: TElement, index: number) => Nullishable<boolean>,
+) {
   return this.filter((i, e) => predicate(e, i) === true);
 };
 
@@ -225,13 +245,14 @@ $.fn.search = function (selector: string, checkIframesIfEmpty: boolean = true): 
   return result;
 };
 
-$.fn.enumerate = function () {
-  return this.asEnumerable().select(e => $(e));
+$.fn.enumerate = function <TElement>(this: JQuery<TElement>) {
+  // jQuery's factory has no overload for an unconstrained collection value.
+  return this.asEnumerable().select(e => $(e as TElement & JQuery.PlainObject));
 };
 
-function ownText(this: JQuery): string;
-function ownText(this: JQuery, value: string): JQuery;
-function ownText(this: JQuery, value?: string): JQuery | string {
+function ownText(this: JQuery<Node>): string;
+function ownText<T extends JQuery<Node>>(this: T, value: string): T;
+function ownText<T extends JQuery<Node>>(this: T, value?: string): T | string {
   if (value == undefined) {
     const texts: string[] = [];
     for (const element of this) {
@@ -268,27 +289,32 @@ function ownText(this: JQuery, value?: string): JQuery | string {
 
 $.fn.ownText = ownText;
 
-$.fn.tap = function (action: (node: JQuery) => void) {
+$.fn.tap = function (action) {
   action(this);
   return this;
 };
 
-$.fn.tapIf = function (condition: (node: JQuery) => boolean, action: (node: JQuery) => void) {
+$.fn.tapIf = function (condition, action) {
   if (condition(this)) {
     action(this);
   }
   return this;
 };
 
-$.fn.collapseBrs = function () {
+$.fn.collapseBrs = function <T extends JQuery<Element>>(this: T) {
   this.each((i, e) => { e.collapseBrs(); });
   return this;
 };
 
-$.fn.refineUrls = function (hosts: MatchPattern[], baseUrl: URL, pathRewrite?: (path: string) => string) {
+$.fn.refineUrls = function <T extends JQuery<Element>>(
+  this: T,
+  hosts: MatchPattern[],
+  baseUrl: URL,
+  pathRewrite?: (path: string) => string,
+) {
   const nodes = this;
 
-  const images: JQuery[] = [];
+  const images: JQuery<Element>[] = [];
   for (const e of nodes) {
     const node = $(e);
 
@@ -382,7 +408,7 @@ $.fn.isNewLineTextNode = function <T extends Node>(this: JQuery<T>): boolean {
   return this.asEnumerable().all(m => m.isNewLineTextNode());
 };
 
-$.fn.trimLeadingBrs = function () {
+$.fn.trimLeadingBrs = function <T extends JQuery<Element>>(this: T) {
   this.each((i, e) => { e.trimLeadingBrs(); });
   return this;
 };

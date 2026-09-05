@@ -1,70 +1,89 @@
+type StyledElement = Element & ElementCSSInlineStyle;
+
 declare global {
-  interface JQuery {
-    pointer(): JQuery;
-    underline(): JQuery;
-    flex(): JQuery;
-    flexWrap(value?: string): JQuery;
-    inlineBlock(): JQuery;
-    inlineFlex(): JQuery;
-    cssImp(propertyName: string, value: string | number): JQuery;
-    tryCss(propertyName: string, value?: string): JQuery;
-    tryAddClass(className?: string | string[]): JQuery;
-    padding(value: string | number): JQuery;
-    color(value: string, important?: boolean): JQuery;
-    color(): string;
-    colorHex(toUpperCase: boolean, defaultValue?: string | true): string;
+  interface JQuery<TElement = HTMLElement> {
+    pointer(this: this & JQuery<StyledElement>): this;
+    underline(this: this & JQuery<StyledElement>): this;
+    flex(this: this & JQuery<StyledElement>): this;
+    flexWrap(this: this & JQuery<StyledElement>, value?: string): this;
+    inlineBlock(this: this & JQuery<StyledElement>): this;
+    inlineFlex(this: this & JQuery<StyledElement>): this;
+    cssImp(this: this & JQuery<StyledElement>, propertyName: string, value: string | number): this;
+    tryCss(this: this & JQuery<StyledElement>, propertyName: string, value?: string): this;
+    tryAddClass(this: this & JQuery<Element>, className?: string | string[]): this;
+    padding(this: this & JQuery<StyledElement>, value: string | number): this;
+    color(this: this & JQuery<StyledElement>, value: string, important?: boolean): this;
+    color(this: this & JQuery<StyledElement>): string | undefined;
+    colorHex(
+      this: this & JQuery<StyledElement>,
+      toUpperCase: boolean,
+      defaultValue?: string,
+    ): string;
+    colorHex(
+      this: this & JQuery<StyledElement>,
+      toUpperCase: boolean,
+      defaultValue: string | true | undefined,
+    ): string | undefined;
   }
 }
 
-$.fn.pointer = function () {
+$.fn.pointer = function <T extends JQuery<StyledElement>>(this: T) {
   return this.css("cursor", "pointer");
 };
 
-$.fn.underline = function () {
+$.fn.underline = function <T extends JQuery<StyledElement>>(this: T) {
   return this.css("text-decoration", "underline");
 };
 
-$.fn.flex = function () {
+$.fn.flex = function <T extends JQuery<StyledElement>>(this: T) {
   return this.css("display", 'flex');
 };
 
-$.fn.inlineFlex = function () {
+$.fn.inlineFlex = function <T extends JQuery<StyledElement>>(this: T) {
   return this.css("display", 'inline-flex');
 };
 
-$.fn.flexWrap = function (value: string = 'wrap') {
+$.fn.flexWrap = function <T extends JQuery<StyledElement>>(this: T, value: string = 'wrap') {
   return this.css("flex-wrap", value);
 };
 
-$.fn.inlineBlock = function () {
+$.fn.inlineBlock = function <T extends JQuery<StyledElement>>(this: T) {
   return this.css("display", 'inline-block');
 };
 
-$.fn.cssImp = function (propertyName: string, value: string | number) {
+$.fn.cssImp = function <T extends JQuery<StyledElement>>(
+  this: T,
+  propertyName: string,
+  value: string | number,
+) {
   return this.each((i, e) => e.style.setProperty(propertyName, value.toString(), 'important'));
 };
 
-$.fn.tryCss = function (propertyName: string, value?: string) {
+$.fn.tryCss = function <T extends JQuery<StyledElement>>(this: T, propertyName: string, value?: string) {
   if (value) {
     this.css(propertyName, value);
   }
   return this;
 };
 
-$.fn.tryAddClass = function (className?: string | string[]) {
+$.fn.tryAddClass = function <T extends JQuery<Element>>(this: T, className?: string | string[]) {
   if (className) {
     this.addClass(className);
   }
   return this;
 };
 
-$.fn.padding = function (value: string | number) {
+$.fn.padding = function <T extends JQuery<StyledElement>>(this: T, value: string | number) {
   return this.css('padding', value);
 };
 
-function color(this: JQuery): string;
-function color(this: JQuery, value: string, important?: boolean): JQuery;
-function color(this: JQuery, value?: string, important?: boolean): JQuery | string {
+function color(this: JQuery<StyledElement>): string | undefined;
+function color<T extends JQuery<StyledElement>>(this: T, value: string, important?: boolean): T;
+function color<T extends JQuery<StyledElement>>(
+  this: T,
+  value?: string,
+  important?: boolean,
+): T | string | undefined {
   if (value == null) {
     return this.css('color');
   } else {
@@ -78,7 +97,17 @@ function color(this: JQuery, value?: string, important?: boolean): JQuery | stri
 $.fn.color = color;
 
 const regRgba = /rgba?\((\d+),\s*(\d+),\s*(\d+)(?:,\s*[\d\.]+)?\)/i;
-$.fn.colorHex = function (toUpperCase: boolean, defaultValue?: string | true): string {
+function colorHex(this: JQuery<StyledElement>, toUpperCase: boolean, defaultValue?: string): string;
+function colorHex(
+  this: JQuery<StyledElement>,
+  toUpperCase: boolean,
+  defaultValue?: string | true,
+): string | undefined;
+function colorHex(
+  this: JQuery<StyledElement>,
+  toUpperCase: boolean,
+  defaultValue?: string | true,
+): string | undefined {
   const color = this.color();
   const match = color?.match(regRgba);
   if (!match) {
@@ -92,4 +121,5 @@ $.fn.colorHex = function (toUpperCase: boolean, defaultValue?: string | true): s
   const g = parseInt(match[2], 10);
   const b = parseInt(match[3], 10);
   return BuiltinX.Color.rgbToHex(r, g, b, toUpperCase);
-};
+}
+$.fn.colorHex = colorHex;

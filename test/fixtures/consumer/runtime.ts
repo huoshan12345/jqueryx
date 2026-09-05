@@ -1,5 +1,6 @@
 import assert from 'node:assert/strict';
 import { createRequire } from 'node:module';
+import type { JQueryObservation } from 'jqueryx';
 
 declare global {
   interface JQuery {
@@ -17,13 +18,7 @@ for (const name of globals) {
   Reflect.set(globalThis, name, dom.window[name]);
 }
 
-const observers: MutationObserver[] = [];
-Reflect.set(globalThis, 'MutationObserver', class extends dom.window.MutationObserver {
-  constructor(callback: MutationCallback) {
-    super(callback);
-    observers.push(this);
-  }
-});
+const observations: JQueryObservation[] = [];
 
 try {
   const application = process.argv[3] === 'package-first' ? await import('./entry.js') : undefined;
@@ -55,10 +50,10 @@ try {
   assert.ok(BuiltinX === hostHelpers, 'The package must share the host BuiltinX helpers.');
 
   let callbacks = 0;
-  button.observe(() => { callbacks++; });
+  observations.push(button.observe(() => { callbacks++; }));
   assert.equal(callbacks, 0, 'The DOM extension must read the host callOnStart default.');
   MutationObserverOptions.default = { callOnStart: true };
-  button.observe(() => { callbacks++; });
+  observations.push(button.observe(() => { callbacks++; }));
   assert.equal(callbacks, 1, 'Changing host defaults must affect subsequent jqueryx observations.');
 
   const sequence = button.asEnumerable();
@@ -69,9 +64,15 @@ try {
   );
   assert.deepEqual(Enumerable.from(sequence).toArray(), [button[0]]);
   assert.deepEqual(button.enumerate().select(node => node.title()).toArray(), ['ready']);
+  for (const observation of observations) {
+    observation.disconnect();
+  }
+  button.append('<span>');
+  await Promise.resolve();
+  assert.equal(callbacks, 1, 'Disconnecting the published subscriptions must stop all callbacks.');
 } finally {
-  for (const observer of observers) {
-    observer.disconnect();
+  for (const observation of observations) {
+    observation.disconnect();
   }
   dom.window.close();
 }

@@ -1,7 +1,17 @@
 import type { Awaitable, HTMLNode, Nullishable } from 'builtinx';
 
 export type JQueryNode = JQuery<HTMLNode>;
-export type JQueryMutationCallback = (mutations: MutationRecord[], observer: MutationObserver, jQuery: JQuery) => void;
+export type JQueryMutationCallback<TElement = HTMLElement> = (
+  mutations: MutationRecord[],
+  observer: MutationObserver,
+  jQuery: JQuery<TElement>,
+) => void;
+
+/** Owns all observers created by one JQuery.observe call. */
+export interface JQueryObservation {
+  /** Stops all observers and suppresses pending callbacks. Safe to call repeatedly. */
+  disconnect(): void;
+}
 
 export interface EventHandlerOptions {
   /**

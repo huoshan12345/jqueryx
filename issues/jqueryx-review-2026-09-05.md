@@ -44,7 +44,7 @@ onClick、onKeyDown 和 onEnterDown 保留返回 JQuery 的链式 API，新增�
 
 验证：test/jquery.events.test.ts 的 40 项用例覆盖同步取消、传播选项、原生和 jQuery 重触发、同步递归、集合内独立执行、并行绑定、样式恢复、关闭防重入、键盘过滤及错误路径。完整测试共 44 项通过；类型检查、声明生成通过，消费者类型测试也覆盖新的 onError 参数。运行时验证使用 jsdom，没有将其表述为真实浏览器导航测试；issue 8 和 10 的既有验证限制仍保留。
 
-### 3. [P2] observe 丢弃观察器，调用方无法可靠管理订阅生命周期
+### 3. [已修复 2026-09-05] [P2] observe 丢弃观察器，调用方无法可靠管理订阅生命周期
 
 位置：[jquery.ts:245](../src/extensions/jquery.ts#L245)。
 
@@ -53,6 +53,12 @@ onClick、onKeyDown 和 onEnterDown 保留返回 JQuery 的链式 API，新增�
 验证：两个元素创建两个独立观察器，返回值仍然是输入 JQuery。测试只能通过拦截底层实现获得句柄并清理。
 
 建议返回包含 `disconnect()` 的订阅对象或观察器集合，或接收 AbortSignal；不要要求调用方等待回调来收集生命周期句柄。
+
+修复：观察相关代码移至 `src/extensions/jquery.observe.ts`。`observe` 返回公开的 `JQueryObservation`，一次 `disconnect()` 停止本次调用创建的全部观察器，可重复调用；空集合也返回可清理的订阅。保留 builtinx 的全局默认值、启动回调、过滤、debounce 和生命周期钩子，保留跨 iframe 的 prototype.call 调用。注册中途抛错时清理已经创建的观察器；断开后屏蔽尚未执行的延迟回调及钩子。底层 debounce 未提供取消计时器的 API，因此这里只屏蔽延迟投递，不宣称取消底层计时器。
+
+这是返回类型的有意变更：原先 `.observe(...).addClass(...)` 应改为先保存集合，再保存订阅，并在组件卸载时调用订阅的 `disconnect()`。启动回调仍可能同步执行，不能在其中引用尚未赋值的订阅变量。
+
+验证：`test/jquery.observe.test.ts` 的 13 项回归测试覆盖首次 mutation 前取消、整组清理、独立订阅、延迟回调屏蔽、启动钩子顺序、宿主默认值和显式覆盖、回调内清理、过滤、中途失败、空集合与同源 iframe。消费者运行时测试改用发布包返回的订阅进行清理，不再拦截原生 MutationObserver 收集句柄。
 
 ### 4. [P2] onNodeExists 的轮询没有取消和完成契约
 
@@ -64,7 +70,19 @@ onClick、onKeyDown 和 onEnterDown 保留返回 JQuery 的链式 API，新增�
 
 建议明确为 `waitForNode` 一类等待操作，返回 Promise，提供 timeout／AbortSignal；若继续使用 callback，则返回取消句柄。`maxCount` 应命名为 `maxAttempts`，避免与匹配节点数量混淆，并明确默认值、合法范围和耗尽行为。
 
-### 5. [P2] 扩展签名丢失 JQuery 的元素类型，部分声明直接不真实
+用户补充用途：等待页面中由 AJAX 等异步插入的节点出现，然后继续后续操作。因此这是一次性的等待操作，建议用 `waitForNodes<TElement extends Element = HTMLElement>(selector, options): Promise<JQuery<TElement>>` 替代回调轮询。此次仅记录设计，尚未改写 onNodeExists 的运行时行为。
+
+建议契约：
+
+- 对已经存在的稳定容器调用，例如 `await $(document).waitForNodes('.ajax-result', { timeoutMs: 30_000, signal })`。只查找后代；空根集合立即报错，避免对 `$('.尚不存在')` 这样的快照无限等待。
+- 先立即查找；已有匹配则完成。否则用 MutationObserver 监听子树的节点、属性和文本变化，每次重新查询；第一次查到至少一个节点时返回当时的匹配集合，仅完成一次，不等待所有未来节点。
+- `timeoutMs` 默认 30 秒，必须是有限非负数；0 表示只立即检查一次。超时拒绝为 TimeoutError，取消使用 AbortSignal 的 reason；预先取消的 signal 优先于查找。非法选择器立即拒绝。
+- 成功、超时、取消和错误都清理 observer、定时器和事件监听器。支持 DOM 变化驱动的选择器；`:visible`、`:hover` 等仅由布局或交互状态改变的条件不在此等待契约内。
+- iframe 用显式 `includeIframes` 选项，默认 false。开启时只检查可访问的同源文档，同时处理新增 iframe 和 load 后的文档替换；跨源文档跳过。避免默认观察所有 frame 的开销和隐含边界。
+
+这能直接表达 `const nodes = await ...; nodes.doSomething()` 的使用顺序，也让后续操作的异常自然进入调用方的 try/catch。
+
+### 5. [已修复 2026-09-05] [P2] 扩展签名丢失 JQuery 的元素类型，部分声明直接不真实
 
 位置：[jquery.ts:7](../src/extensions/jquery.ts#L7)、[jquery.attr.ts:4](../src/extensions/jquery.attr.ts#L4)、[jquery.css.ts:2](../src/extensions/jquery.css.ts#L2)。
 
@@ -73,6 +91,12 @@ onClick、onKeyDown 和 onEnterDown 保留返回 JQuery 的链式 API，新增�
 验证：`$(button).tap(() => {})[0].disabled = true` 被 tsc 拒绝；反过来 SVG 集合的 `asEnumerable().toArray()` 可以错误地赋给 `HTMLElement[]`，Text 集合的 entries 元素也能赋给 HTMLElement。
 
 建议增强 `JQuery<TElement>`，链式不改变集合的方法返回 `this`，回调和枚举保持 TElement。需要 HTMLElement／Element 能力的方法应在 this 参数上表达约束。`color()` 声明为 string，但空集合会从底层 css 得到 undefined，也应一并校正。
+
+修复：各实例扩展统一增强 `JQuery<TElement>`，保持集合的链式方法返回 `this`；entries、where、asEnumerable、enumerate 和 observe 回调保留实际元素类型，tap/tapIf 回调保留集合类型。replaceBy 推断替换后的元素类型，ifEmpty 返回原元素与选择器默认元素的联合类型，ancestor 返回 Element 集合。通过 this 参数分别要求 Node、Element、带 style 的 Element、HTMLElement 或 EventTarget；SVG 样式和 Text 文本／观察操作仍可使用。事件 target 仍表示实际触发节点，未错误地收窄为绑定集合中的按钮类型。
+
+`color()` 现在返回 `string | undefined`；colorHex 的原颜色回退也包含 undefined，字符串回退与失败抛错的重载仍返回 string。文本范围、URL 改写与一次性序列等其他条目不在本次修复范围内。
+
+验证：独立消费者编译真实发射的声明，覆盖各模块按钮链、回调和序列泛型、替换与 fallback 类型、SVG／Text 正常用法，以及错误 DOM 能力调用和颜色非空赋值的拒绝。另有 3 项运行时测试验证链式集合身份、Text／SVG 枚举身份和空集合颜色。完整测试共 63 项通过；类型检查和声明构建通过。消费者仍用 skipLibCheck 隔离 issue 10，完整 Vite 构建仍受 issue 8 阻塞。
 
 ### 6. [P2] textContent 与 ownText 的文本范围和集合写入规则不一致
 

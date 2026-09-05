@@ -2,30 +2,33 @@ import { ClickOptions, type EventHandlerOptions } from '@/types/lib';
 import type { Awaitable } from 'builtinx';
 
 declare global {
-  interface JQuery {
+  interface JQuery<TElement = HTMLElement> {
     /**
      * Cancels events synchronously according to options, then invokes the handler.
      * Processing is guarded per binding and bound element; target remains the clicked node.
      * Handler return values are ignored. Errors go to onError, or console.error if omitted.
      */
     onClick(
+      this: this & JQuery<HTMLElement>,
       handler: (target: HTMLElement, originalEvent?: MouseEvent) => Awaitable<unknown>,
       options?: Partial<ClickOptions>,
-    ): JQuery;
-    onClickGotoHref(openNew?: boolean): JQuery;
+    ): this;
+    onClickGotoHref(this: this & JQuery<Element>, openNew?: boolean): this;
     /** Stops propagation immediately, preserves default behavior, and reports handler errors. */
     onKeyDown(
+      this: this & JQuery<HTMLElement>,
       handler: (target: HTMLElement, key: string) => Awaitable<unknown>,
       options?: EventHandlerOptions,
-    ): JQuery;
+    ): this;
     /** Like onKeyDown, but only handles and stops propagation for Enter. */
     onEnterDown(
+      this: this & JQuery<HTMLElement>,
       handler: (target: HTMLElement) => Awaitable<unknown>,
       options?: EventHandlerOptions,
-    ): JQuery;
-    triggerClick(): JQuery;
-    triggerChange(): JQuery;
-    dispatchEvent(event: Event): JQuery;
+    ): this;
+    triggerClick(this: this & JQuery<HTMLElement>): this;
+    triggerChange(): this;
+    dispatchEvent(this: this & JQuery<EventTarget>, event: Event): this;
   }
 }
 
@@ -94,7 +97,7 @@ async function runEventHandler(
 $.fn.onClick = function (
   handler: (target: HTMLElement, originalEvent?: MouseEvent) => Awaitable<unknown>,
   options?: Partial<ClickOptions>,
-): JQuery {
+) {
   const settings = new ClickOptions(options);
   const processingElements = new WeakSet<HTMLElement>();
 
@@ -131,7 +134,7 @@ $.fn.onClick = function (
   });
 };
 
-$.fn.onClickGotoHref = function (openNew?: boolean) {
+$.fn.onClickGotoHref = function <T extends JQuery<Element>>(this: T, openNew?: boolean) {
   if (this.isNot('a')) {
     return this;
   }
@@ -150,12 +153,12 @@ $.fn.onClickGotoHref = function (openNew?: boolean) {
     .removeAttr('onclick');
 };
 
-function bindKeyDown(
-  nodes: JQuery,
+function bindKeyDown<T extends JQuery<HTMLElement>>(
+  nodes: T,
   handler: (target: HTMLElement, key: string) => Awaitable<unknown>,
   options?: EventHandlerOptions,
   key?: string,
-): JQuery {
+): T {
   return nodes.on('keydown', event => {
     if (key !== undefined && event.key !== key) {
       return;
@@ -187,6 +190,6 @@ $.fn.triggerChange = function () {
   return this.trigger("change");
 };
 
-$.fn.dispatchEvent = function (event: Event) {
+$.fn.dispatchEvent = function <T extends JQuery<EventTarget>>(this: T, event: Event) {
   return this.each((i, e) => { e.dispatchEvent(event); });
 };

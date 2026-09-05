@@ -1,26 +1,26 @@
 import type { URLLike } from 'builtinx';
 
 declare global {
-  interface JQuery {
-    title(): string | undefined;
-    title(value: string): JQuery;
-    requiredTitle(): string;
-    targetBlank(onlyUpdate?: boolean): JQuery;
-    textContent(): string;
-    textContent(value: string): JQuery;
-    requiredHref(): string;
-    href(): string | undefined;
-    href(value: URLLike): JQuery;
-    voidHref(): JQuery;
-    hasUrlHref(): boolean;
-    disable(): JQuery;
-    enable(): JQuery;
+  interface JQuery<TElement = HTMLElement> {
+    title(this: this & JQuery<Element>): string | undefined;
+    title(this: this & JQuery<Element>, value: string): this;
+    requiredTitle(this: this & JQuery<Element>): string;
+    targetBlank(this: this & JQuery<Element>, onlyUpdate?: boolean): this;
+    textContent(this: this & JQuery<Node>): string;
+    textContent(this: this & JQuery<Node>, value: string): this;
+    requiredHref(this: this & JQuery<Element>): string;
+    href(this: this & JQuery<Element>): string | undefined;
+    href(this: this & JQuery<Element>, value: URLLike): this;
+    voidHref(this: this & JQuery<Element>): this;
+    hasUrlHref(this: this & JQuery<Element>): boolean;
+    disable(this: this & JQuery<Element>): this;
+    enable(this: this & JQuery<Element>): this;
   }
 }
 
-function title(this: JQuery): string | undefined;
-function title(this: JQuery, value: string): JQuery;
-function title(this: JQuery, value?: string): JQuery | string | undefined {
+function title(this: JQuery<Element>): string | undefined;
+function title<T extends JQuery<Element>>(this: T, value: string): T;
+function title<T extends JQuery<Element>>(this: T, value?: string): T | string | undefined {
   if (value == null) {
     return this.attr('title');
   } else {
@@ -33,7 +33,7 @@ $.fn.requiredTitle = function (): string {
   return this.attr('title') || Error.throw("The element does not have title.");
 };
 
-$.fn.targetBlank = function (onlyUpdate: boolean = true) {
+$.fn.targetBlank = function <T extends JQuery<Element>>(this: T, onlyUpdate: boolean = true) {
   const node = onlyUpdate
     ? this.filter((i, e) => e.getAttribute('target') != '_blank')
     : this;
@@ -41,13 +41,13 @@ $.fn.targetBlank = function (onlyUpdate: boolean = true) {
   return this;
 };
 
-function textContent(this: JQuery): string;
-function textContent(this: JQuery, value: string): JQuery;
-function textContent(this: JQuery, value?: string): JQuery | string {
+function textContent(this: JQuery<Node>): string;
+function textContent<T extends JQuery<Node>>(this: T, value: string): T;
+function textContent<T extends JQuery<Node>>(this: T, value?: string): T | string {
   const nodes = this
     .contents()
     .addBack() // 有可能自身是文本节点
-    .filter((i, e) => e.nodeType === Node.TEXT_NODE);
+    .filter((i, e) => e.nodeType === Node.TEXT_NODE) as JQuery<Text>;
 
   if (value == undefined) {
     return nodes.text();
@@ -69,9 +69,9 @@ function textContent(this: JQuery, value?: string): JQuery | string {
 
 $.fn.textContent = textContent;
 
-function href(this: JQuery): string | undefined;
-function href(this: JQuery, value: URLLike): JQuery;
-function href(this: JQuery, value?: URLLike): JQuery | string | undefined {
+function href(this: JQuery<Element>): string | undefined;
+function href<T extends JQuery<Element>>(this: T, value: URLLike): T;
+function href<T extends JQuery<Element>>(this: T, value?: URLLike): T | string | undefined {
   if (value == undefined) {
     return this.attr('href');
   } else {
@@ -80,11 +80,11 @@ function href(this: JQuery, value?: URLLike): JQuery | string | undefined {
 }
 $.fn.href = href;
 
-$.fn.requiredHref = function (this: JQuery): string {
+$.fn.requiredHref = function (): string {
   return this.attr('href') || Error.throw("The element does not have href.");
 };
 
-$.fn.voidHref = function (): JQuery {
+$.fn.voidHref = function <T extends JQuery<Element>>(this: T) {
   return this.href("javascript:;");
 };
 
@@ -93,10 +93,10 @@ $.fn.hasUrlHref = function () {
   return href && !href.startsWith('javascript:');
 };
 
-$.fn.disable = function () {
+$.fn.disable = function <T extends JQuery<Element>>(this: T) {
   return this.prop("disabled", true);
 };
 
-$.fn.enable = function () {
+$.fn.enable = function <T extends JQuery<Element>>(this: T) {
   return this.prop("disabled", false);
 };
