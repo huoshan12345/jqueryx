@@ -44,10 +44,7 @@ $.fn.targetBlank = function <T extends JQuery<Element>>(this: T, onlyUpdate: boo
 function textContent(this: JQuery<Node>): string;
 function textContent<T extends JQuery<Node>>(this: T, value: string): T;
 function textContent<T extends JQuery<Node>>(this: T, value?: string): T | string {
-  const nodes = this
-    .contents()
-    .addBack() // 有可能自身是文本节点
-    .filter((i, e) => e.nodeType === Node.TEXT_NODE) as JQuery<Text>;
+  const nodes = this.textNodes(undefined, [], false)
 
   if (value == undefined) {
     return nodes.text();

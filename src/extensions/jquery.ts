@@ -19,7 +19,7 @@ declare global {
       selector?: string,
       skipTags?: string[],
       skipAnchor?: boolean,
-    ): JQuery<HTMLNode>;
+    ): JQuery<Text>;
     visible(this: this & JQuery<Element>): boolean;
     visible(this: this & JQuery<Element>, value: boolean): this;
     checked(): boolean;
@@ -102,7 +102,7 @@ $.fn.isNot = function (selector: string): boolean {
   return this.is(selector) === false;
 };
 
-$.fn.textNodes = function (selector?: string, skipTags?: string[], skipAnchor: boolean = true): JQuery<HTMLNode> {
+$.fn.textNodes = function (selector?: string, skipTags?: string[], skipAnchor: boolean = true): JQuery<Text> {
   skipTags ??= [
     'a',
     'button',
@@ -119,7 +119,7 @@ $.fn.textNodes = function (selector?: string, skipTags?: string[], skipAnchor: b
     queue.enqueue(element);
   }
 
-  let result = $() as JQuery<HTMLNode>;
+  let result = $() as JQuery<Text>;
   while (queue.isNotEmpty()) {
     const node = queue.dequeue();
     const jquery = $(node);
