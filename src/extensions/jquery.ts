@@ -1,6 +1,6 @@
-import { ClickOptions, type JQueryMutationCallback } from '@/types/lib';
+import type { JQueryMutationCallback } from '@/types/lib';
 import { Enumerable } from 'linqx';
-import type { Awaitable, HTMLNode, MatchPattern, MutationObserverOptionsInit, Nullishable } from 'builtinx';
+import type { HTMLNode, MatchPattern, MutationObserverOptionsInit, Nullishable } from 'builtinx';
 import { Queue } from 'builtinx';
 
 declare global {
@@ -10,21 +10,14 @@ declare global {
     isEmpty(): boolean;
     isNotEmpty(): boolean;
     ancestor(selector: string, outermost?: boolean, includeSelf?: boolean): JQuery;
-    onClick(handler: (e: HTMLElement, originalEvent?: MouseEvent) => Awaitable<unknown>, options?: Partial<ClickOptions>): JQuery;
-    onClickGotoHref(openNew?: boolean): JQuery;
     textNodes(selector?: string, skipTags?: string[], skipAnchor?: boolean): JQuery<HTMLNode>;
     visible(): boolean;
     visible(value: boolean): JQuery;
     checked(): boolean;
     entries(): IterableIterator<[number, HTMLElement]>;
-    triggerClick(): JQuery;
-    triggerChange(): JQuery;
-    dispatchEvent(event: Event): JQuery;
     onNodeExists(selector: string, func: (node: JQuery) => void, maxCount?: number): void;
     observe(callback: JQueryMutationCallback, options?: Partial<MutationObserverOptionsInit>): JQuery;
     asEnumerable(): Enumerable.IEnumerable<HTMLElement>;
-    onKeyDown(handler: (e: HTMLElement, key: string) => Awaitable<unknown>): JQuery;
-    onEnterDown(handler: (e: HTMLElement) => Awaitable<unknown>): JQuery;
     replaceBy(replacement: (node: JQuery) => JQuery): JQuery;
     ifEmpty(selector: string): JQuery;
     where(predicate: (e: HTMLElement, index: number) => Nullishable<boolean>): JQuery;
@@ -82,50 +75,6 @@ $.fn.ancestor = function (selector: string, outermost = false, includeSelf = fal
     }
     return result;
   }
-};
-
-$.fn.onClick = function (handler: (e: HTMLElement, originalEvent?: MouseEvent) => Awaitable<unknown>, options?: Partial<ClickOptions>): JQuery {
-  const o = new ClickOptions(options);
-  return this.on('click', async e => {
-    if (o.disableWhileProcessing) {
-      this.css({ pointerEvents: "none" });
-    }
-    try {
-      return await handler(e.target, e.originalEvent);
-    } finally {
-      if (o.disableWhileProcessing) {
-        this.css({ pointerEvents: 'initial' });
-      }
-      if (o.preventDefault) {
-        e.preventDefault();
-      }
-      if (o.stopPropagation) {
-        e.stopPropagation();
-      }
-      if (o.stopImmediatePropagation) {
-        e.stopImmediatePropagation();
-      }
-    }
-  });
-};
-
-$.fn.onClickGotoHref = function (openNew?: boolean) {
-  if (this.isNot('a')) {
-    return this;
-  }
-  if (openNew) {
-    this.targetBlank();
-  }
-
-  // add an event listener to the window capturing and canceling all events
-  for (const element of this) {
-    element.addEventListener('click', e => e.stopPropagation(), true);
-  }
-
-  return this
-    .off('click')
-    .attr('onclick', null)
-    .removeAttr('onclick');
 };
 
 $.fn.isNot = function (selector: string): boolean {
@@ -203,24 +152,6 @@ $.fn.entries = function* () {
   }
 };
 
-$.fn.onKeyDown = function (handler: (e: HTMLElement, key: string) => Awaitable<unknown>) {
-  return this.on('keydown', async e => {
-    try {
-      await handler(e.target, e.key);
-    } finally {
-      e.stopImmediatePropagation();
-    }
-  });
-};
-
-$.fn.onEnterDown = function (handler: (e: HTMLElement) => Awaitable<unknown>) {
-  return this.onKeyDown((e, k) => {
-    return k === 'Enter'
-      ? handler(e)
-      : Promise.resolve();
-  });
-};
-
 function onNodeExists(jq: JQuery, selector: string, func: (node: JQuery) => void, maxCount: number, count: number) {
   // console.log(`selector: ${selector}, maxCount: ${maxCount}, count: ${count}`);
 
@@ -258,18 +189,6 @@ function* enumerate<T>(j: JQuery<T>) {
 $.fn.asEnumerable = function <TElement = HTMLElement>(this: JQuery<TElement>): Enumerable.IEnumerable<TElement> {
   const e = enumerate(this);
   return Enumerable.from(e);
-};
-
-$.fn.triggerClick = function () {
-  return this.each((i, e) => e.click());
-};
-
-$.fn.triggerChange = function () {
-  return this.trigger("change");
-};
-
-$.fn.dispatchEvent = function (event: Event) {
-  return this.each((i, e) => { e.dispatchEvent(event); });
 };
 
 $.fn.replaceBy = function (replacement: (node: JQuery) => JQuery) {

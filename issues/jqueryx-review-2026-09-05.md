@@ -26,9 +26,9 @@
 
 验证：新增 test/package.test.ts 及消费者 fixtures，在独立 Node/jsdom 进程中通过包入口消费构建产物，确认另一业务模块不 import jquery 也能直接使用 `$`；全局 `$`／`jQuery` 与宿主模块实例相同，已有插件和 data 缓存共享。测试只构建 index 入口以隔离未修复的 issue 8，没有将此结果表述为完整构建通过。
 
-### 2. [P1] 异步事件包装器的取消、互斥和错误传递模型不成立
+### 2. [已修复 2026-09-05] [P1] 异步事件包装器的取消、互斥和错误传递模型不成立
 
-位置：[jquery.ts:87](../src/extensions/jquery.ts#L87)、[jquery.ts:206](../src/extensions/jquery.ts#L206)。
+位置：[jquery.events.ts:94](../src/extensions/jquery.events.ts#L94)、[jquery.events.ts:153](../src/extensions/jquery.events.ts#L153)。
 
 `onClick` 在 `await handler(...)` 后的 finally 中执行 `preventDefault`、`stopPropagation` 和 `stopImmediatePropagation`，`onKeyDown` 也在 await 之后阻止后续处理。即使 handler 同步返回，await 仍让出执行：本次事件已经继续传播，浏览器也已判断是否执行默认行为。默认开启的 `preventDefault` 因而不能可靠阻止链接导航或表单提交。
 
@@ -37,6 +37,12 @@
 验证：原生事件 dispatch 返回 true、`defaultPrevented === false`，后续监听器和父节点监听器均执行；微任务后才变成已取消。连续两次 `.click()` 在同一 Promise 完成前调用 handler 两次；初始 `pointer-events: auto` 结束后变成 `initial`。
 
 建议把事件取消放在同步阶段；明确逐元素互斥规则、保存／恢复状态和异步错误处理方式。`onEnterDown` 应沿用修正后的模型。
+
+修复：onClick 在调用用户 handler 前同步执行各项事件取消选项；disableWhileProcessing 按每次绑定、每个绑定元素防重入，不再禁用整个集合。独立绑定仍各自执行，原始 pointer-events 值及 important 优先级由共享计数管理，最后一个 handler 结束后才恢复。成功或失败都释放执行状态，并在错误回调之前完成恢复。
+
+onClick、onKeyDown 和 onEnterDown 保留返回 JQuery 的链式 API，新增可选 onError 处理同步异常／异步拒绝；未提供时写入 console.error，onError 自身失败也写入 console.error。handler 的返回值继续被忽略，支持返回普通值或 Promise 的表达式函数。onKeyDown 同步阻止传播并保留默认行为；onEnterDown 只对 Enter 执行这一行为，不拦截其他键。
+
+验证：test/jquery.events.test.ts 的 40 项用例覆盖同步取消、传播选项、原生和 jQuery 重触发、同步递归、集合内独立执行、并行绑定、样式恢复、关闭防重入、键盘过滤及错误路径。完整测试共 44 项通过；类型检查、声明生成通过，消费者类型测试也覆盖新的 onError 参数。运行时验证使用 jsdom，没有将其表述为真实浏览器导航测试；issue 8 和 10 的既有验证限制仍保留。
 
 ### 3. [P2] observe 丢弃观察器，调用方无法可靠管理订阅生命周期
 

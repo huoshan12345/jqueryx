@@ -1,0 +1,192 @@
+import { ClickOptions, type EventHandlerOptions } from '@/types/lib';
+import type { Awaitable } from 'builtinx';
+
+declare global {
+  interface JQuery {
+    /**
+     * Cancels events synchronously according to options, then invokes the handler.
+     * Processing is guarded per binding and bound element; target remains the clicked node.
+     * Handler return values are ignored. Errors go to onError, or console.error if omitted.
+     */
+    onClick(
+      handler: (target: HTMLElement, originalEvent?: MouseEvent) => Awaitable<unknown>,
+      options?: Partial<ClickOptions>,
+    ): JQuery;
+    onClickGotoHref(openNew?: boolean): JQuery;
+    /** Stops propagation immediately, preserves default behavior, and reports handler errors. */
+    onKeyDown(
+      handler: (target: HTMLElement, key: string) => Awaitable<unknown>,
+      options?: EventHandlerOptions,
+    ): JQuery;
+    /** Like onKeyDown, but only handles and stops propagation for Enter. */
+    onEnterDown(
+      handler: (target: HTMLElement) => Awaitable<unknown>,
+      options?: EventHandlerOptions,
+    ): JQuery;
+    triggerClick(): JQuery;
+    triggerChange(): JQuery;
+    dispatchEvent(event: Event): JQuery;
+  }
+}
+
+interface ClickProcessingState {
+  count: number;
+  pointerEvents: string;
+  priority: string;
+}
+
+// Independent bindings may overlap; only the last one restores the original style.
+const clickProcessingStates = new WeakMap<HTMLElement, ClickProcessingState>();
+
+function disableClickPointerEvents(element: HTMLElement): void {
+  const state = clickProcessingStates.get(element);
+  if (state) {
+    state.count++;
+    return;
+  }
+
+  clickProcessingStates.set(element, {
+    count: 1,
+    pointerEvents: element.style.getPropertyValue('pointer-events'),
+    priority: element.style.getPropertyPriority('pointer-events'),
+  });
+  element.style.setProperty('pointer-events', 'none', 'important');
+}
+
+function restoreClickPointerEvents(element: HTMLElement): void {
+  const state = clickProcessingStates.get(element);
+  if (!state) {
+    return;
+  }
+  state.count--;
+  if (state.count > 0) {
+    return;
+  }
+
+  clickProcessingStates.delete(element);
+  if (state.pointerEvents) {
+    element.style.setProperty('pointer-events', state.pointerEvents, state.priority);
+  } else {
+    element.style.removeProperty('pointer-events');
+  }
+}
+
+async function runEventHandler(
+  handler: () => Awaitable<unknown>,
+  options?: EventHandlerOptions,
+): Promise<void> {
+  try {
+    await handler();
+  } catch (error) {
+    if (!options?.onError) {
+      console.error(error);
+      return;
+    }
+
+    try {
+      await options.onError(error);
+    } catch (errorHandlerError) {
+      console.error(errorHandlerError);
+    }
+  }
+}
+
+$.fn.onClick = function (
+  handler: (target: HTMLElement, originalEvent?: MouseEvent) => Awaitable<unknown>,
+  options?: Partial<ClickOptions>,
+): JQuery {
+  const settings = new ClickOptions(options);
+  const processingElements = new WeakSet<HTMLElement>();
+
+  return this.on('click', event => {
+    if (settings.preventDefault) {
+      event.preventDefault();
+    }
+    if (settings.stopPropagation) {
+      event.stopPropagation();
+    }
+    if (settings.stopImmediatePropagation) {
+      event.stopImmediatePropagation();
+    }
+
+    const element = event.currentTarget;
+    if (settings.disableWhileProcessing) {
+      if (processingElements.has(element)) {
+        return;
+      }
+      processingElements.add(element);
+      disableClickPointerEvents(element);
+    }
+
+    void runEventHandler(async () => {
+      try {
+        await handler(event.target, event.originalEvent);
+      } finally {
+        if (settings.disableWhileProcessing) {
+          processingElements.delete(element);
+          restoreClickPointerEvents(element);
+        }
+      }
+    }, settings);
+  });
+};
+
+$.fn.onClickGotoHref = function (openNew?: boolean) {
+  if (this.isNot('a')) {
+    return this;
+  }
+  if (openNew) {
+    this.targetBlank();
+  }
+
+  // add an event listener to the window capturing and canceling all events
+  for (const element of this) {
+    element.addEventListener('click', e => e.stopPropagation(), true);
+  }
+
+  return this
+    .off('click')
+    .attr('onclick', null)
+    .removeAttr('onclick');
+};
+
+function bindKeyDown(
+  nodes: JQuery,
+  handler: (target: HTMLElement, key: string) => Awaitable<unknown>,
+  options?: EventHandlerOptions,
+  key?: string,
+): JQuery {
+  return nodes.on('keydown', event => {
+    if (key !== undefined && event.key !== key) {
+      return;
+    }
+    event.stopImmediatePropagation();
+    void runEventHandler(() => handler(event.target, event.key), options);
+  });
+}
+
+$.fn.onKeyDown = function (
+  handler: (target: HTMLElement, key: string) => Awaitable<unknown>,
+  options?: EventHandlerOptions,
+) {
+  return bindKeyDown(this, handler, options);
+};
+
+$.fn.onEnterDown = function (
+  handler: (target: HTMLElement) => Awaitable<unknown>,
+  options?: EventHandlerOptions,
+) {
+  return bindKeyDown(this, target => handler(target), options, 'Enter');
+};
+
+$.fn.triggerClick = function () {
+  return this.each((i, e) => e.click());
+};
+
+$.fn.triggerChange = function () {
+  return this.trigger("change");
+};
+
+$.fn.dispatchEvent = function (event: Event) {
+  return this.each((i, e) => { e.dispatchEvent(event); });
+};
