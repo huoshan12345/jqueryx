@@ -1,4 +1,6 @@
 import 'jqueryx';
+import type { Enumerable } from 'linqx';
+import type { MutationObserverOptionsInit } from 'builtinx';
 
 const buttons: JQuery<HTMLButtonElement> = $('button');
 const sameButtons: JQuery<HTMLButtonElement> = jQuery('button');
@@ -15,8 +17,13 @@ buttons.onEnterDown(target => target.focus(), {
   onError: error => String(error),
 });
 
+const sequence: Enumerable.IEnumerable<HTMLElement> = buttons.asEnumerable();
+const wrapped: Enumerable.IEnumerable<JQuery> = buttons.enumerate();
+const observerOptions: MutationObserverOptionsInit = { callOnStart: false, debounce: false };
+buttons.observe(() => {}, observerOptions);
+
 // The global factory must retain jQuery's base types, not just jqueryx's augmentation.
 // @ts-expect-error A button is not an input element.
 const inputs: JQuery<HTMLInputElement> = buttons;
 
-void [empty, title, inputs];
+void [empty, title, inputs, sequence, wrapped];

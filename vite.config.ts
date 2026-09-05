@@ -12,7 +12,7 @@ export default defineConfig({
   ],
   build: {
     rolldownOptions: {
-      external: ['jquery'],
+      external: [/^(jquery|builtinx|linqx)(\/|$)/],
     },
     lib: {
       entry: {

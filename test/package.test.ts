@@ -79,10 +79,10 @@ afterAll(() => {
   }
 });
 
-test('declares jQuery as a shared peer with a local development dependency', () => {
-  expect(manifest.peerDependencies?.jquery).toEqual(expect.any(String));
-  expect(manifest.devDependencies.jquery).toBe(manifest.peerDependencies.jquery);
-  expect(manifest.dependencies.jquery).toBeUndefined();
+test.each(['jquery', 'builtinx', 'linqx'])('declares %s as a shared peer with a local development dependency', dependency => {
+  expect(manifest.peerDependencies?.[dependency]).toEqual(expect.any(String));
+  expect(manifest.devDependencies[dependency]).toBe(manifest.peerDependencies[dependency]);
+  expect(manifest.dependencies[dependency]).toBeUndefined();
 });
 
 test('ships the jQuery types as a consumer dependency', () => {
@@ -90,9 +90,12 @@ test('ships the jQuery types as a consumer dependency', () => {
   expect(manifest.devDependencies['@types/jquery']).toBeUndefined();
 });
 
-test('the built entry installs shared globals before business modules execute', () => {
+test.each(['host-first', 'package-first'])('the built entry shares all peer runtimes with %s loading', loadOrder => {
   runNode(compiler, ['-p', join(consumerDirectory, 'tsconfig.runtime.json')]);
-  runNode(join(consumerDirectory, 'compiled', 'runtime.js'), [require.resolve('vitest/package.json')]);
+  runNode(join(consumerDirectory, 'compiled', 'runtime.js'), [
+    require.resolve('vitest/package.json'),
+    loadOrder,
+  ]);
 });
 
 test('consumers get global factories and base types by importing only jqueryx', () => {

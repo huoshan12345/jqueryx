@@ -11,12 +11,6 @@ importers:
       '@types/jquery':
         specifier: ^4.0.1
         version: 4.0.1
-      builtinx:
-        specifier: ^0.2.2
-        version: 0.2.2
-      linqx:
-        specifier: ^0.2.1
-        version: 0.2.1
     devDependencies:
       '@phiberber/pinst':
         specifier: ^3.0.1
@@ -24,9 +18,15 @@ importers:
       '@types/node':
         specifier: ^26.4.1
         version: 26.4.1
+      builtinx:
+        specifier: ^0.2.2
+        version: 0.2.2
       jquery:
         specifier: ^4.0.0
         version: 4.0.0
+      linqx:
+        specifier: ^0.3.2
+        version: 0.3.2
       npm-run-all2:
         specifier: ^9.0.3
         version: 9.0.3
@@ -46,8 +46,8 @@ importers:
         specifier: ^5.0.0
         version: 5.0.0(@types/node@26.4.1)(jsdom@29.0.2)(vite@8.2.2(@types/node@26.4.1)(esbuild@0.27.7))
       vitest-canvas-mock:
-        specifier: ^1.1.5
-        version: 1.1.5(vitest@5.0.0(@types/node@26.4.1)(jsdom@29.0.2)(vite@8.2.2(@types/node@26.4.1)(esbuild@0.27.7)))
+        specifier: ^1.2.0
+        version: 1.2.0(vitest@5.0.0(@types/node@26.4.1)(jsdom@29.0.2)(vite@8.2.2(@types/node@26.4.1)(esbuild@0.27.7)))
 
 packages:
 
@@ -837,8 +837,8 @@ packages:
     resolution: {integrity: sha512-WkUDrojuJs0xkgGf2udWxa3yGBRxPtxUkB79i6aCZLRgc7PM8fZe9TosfPDcvEpQZbuFASnHYmRLBLUbmLOIIA==}
     engines: {node: '>= 12.0.0'}
 
-  linqx@0.2.1:
-    resolution: {integrity: sha512-PC9F8GKC8cjO4xhVY4KXDjyTUbEsXnDwE1+CXO9fmOV9QVQeon+X/emtfxAlRxYZc41+70B4yaaJhXjeXqlqPg==}
+  linqx@0.3.2:
+    resolution: {integrity: sha512-b73AtJDJSMTGjH8HpBpas56RFbKJWjTOBfN6oe+jgNHdY/eNgnLQIj1c75L/wnVUABiR1LEYWZeAN8MP84Dwgg==}
 
   lru-cache@11.3.5:
     resolution: {integrity: sha512-NxVFwLAnrd9i7KUBxC4DrUhmgjzOs+1Qm50D3oF1/oL+r1NpZ4gA7xvG0/zJ8evR7zIKn4vLf7qTNduWFtCrRw==}
@@ -1164,10 +1164,10 @@ packages:
       yaml:
         optional: true
 
-  vitest-canvas-mock@1.1.5:
-    resolution: {integrity: sha512-PWtzolkO/GsG9I9qsLxJ8HzdXQKNz1iRVUcCDJbNBiDuxMp50NC1MWwz2UmDYS4vJqNeKyoLWm7RgjfKWIoQOQ==}
+  vitest-canvas-mock@1.2.0:
+    resolution: {integrity: sha512-gTy8+dL7aDFZq2EOGCk5krSVsvszTW/M+58efNzybehZNakON2HiPfi3bDBAp85L8DL+D+f/cNtQ5N60rZEL7A==}
     peerDependencies:
-      vitest: ^3.0.0 || ^4.0.0
+      vitest: ^3.0.0 || ^4.0.0 || ^5.0.0
 
   vitest@5.0.0:
     resolution: {integrity: sha512-gpsMNoRhMjMktVxPtstOH4/PJuPyovVaMDr4oDilXaGH1EcqM2OE96SoHT2VIQ6fTGtTjqmHDrEu2X9RQiXf8Q==}
@@ -1859,7 +1859,7 @@ snapshots:
       lightningcss-win32-arm64-msvc: 1.33.0
       lightningcss-win32-x64-msvc: 1.33.0
 
-  linqx@0.2.1: {}
+  linqx@0.3.2: {}
 
   lru-cache@11.3.5:
     optional: true
@@ -2149,7 +2149,7 @@ snapshots:
       esbuild: 0.27.7
       fsevents: 2.3.3
 
-  vitest-canvas-mock@1.1.5(vitest@5.0.0(@types/node@26.4.1)(jsdom@29.0.2)(vite@8.2.2(@types/node@26.4.1)(esbuild@0.27.7))):
+  vitest-canvas-mock@1.2.0(vitest@5.0.0(@types/node@26.4.1)(jsdom@29.0.2)(vite@8.2.2(@types/node@26.4.1)(esbuild@0.27.7))):
     dependencies:
       cssfontparser: 1.2.1
       moo-color: 1.0.3
