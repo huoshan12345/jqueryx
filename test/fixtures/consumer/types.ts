@@ -1,6 +1,7 @@
 import 'jqueryx';
 import type { Enumerable } from 'linqx';
 import type { MutationObserverOptionsInit } from 'builtinx';
+import type { WaitForNodesOptions, RefineUrlsOptions } from 'jqueryx';
 
 const buttons: JQuery<HTMLButtonElement> = $('button');
 const sameButtons: JQuery<HTMLButtonElement> = jQuery('button');
@@ -90,3 +91,20 @@ const fallbackHex: string = $().colorHex(false, '#000000');
 const throwingHex: string = $().colorHex(false);
 void [replacement, svgNodes, htmlNodes, withFallback, onlyText, optionalColor, requiredColor,
   optionalHex, requiredHex, fallbackHex, throwingHex];
+
+const waitOptions: WaitForNodesOptions = { timeoutMs: 500, signal: new AbortController().signal, includeIframes: true };
+const matchingButtons: Promise<JQuery<HTMLButtonElement>> = $(document).waitForNodes<HTMLButtonElement>('button', waitOptions);
+const defaultMatches: Promise<JQuery<HTMLElement>> = buttons.waitForNodes('.child');
+$(document.createDocumentFragment()).waitForNodes('button');
+// @ts-expect-error Text is not a searchable root.
+text.waitForNodes('button');
+// @ts-expect-error Selector results must be Elements.
+$(document).waitForNodes<Text>('button');
+// @ts-expect-error The old uncancellable callback API was replaced.
+buttons.onNodeExists('button', () => {});
+const urlOptions: RefineUrlsOptions = { addImageFallbackLinks: true, pathRewrite: path => path + '/updated' };
+buttons.refineUrls([], new URL('https://example.com'), urlOptions)[0].disabled = true;
+buttons.refineUrls([], new URL('https://example.com'), path => path)[0].disabled = true;
+// @ts-expect-error The fallback flag must be boolean.
+buttons.refineUrls([], new URL('https://example.com'), { addImageFallbackLinks: 'yes' });
+void [matchingButtons, defaultMatches];

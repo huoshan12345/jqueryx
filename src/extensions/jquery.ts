@@ -1,5 +1,5 @@
 import { Enumerable } from 'linqx';
-import type { HTMLNode, MatchPattern, Nullishable } from 'builtinx';
+import type { Nullishable } from 'builtinx';
 import { Queue } from 'builtinx';
 
 declare global {
@@ -24,12 +24,6 @@ declare global {
     visible(this: this & JQuery<Element>, value: boolean): this;
     checked(): boolean;
     entries(): IterableIterator<[number, TElement]>;
-    onNodeExists(
-      this: this & JQuery<Node>,
-      selector: string,
-      func: (node: JQuery) => void,
-      maxCount?: number,
-    ): void;
     asEnumerable(): Enumerable.IEnumerable<TElement>;
     replaceBy<TReplacement extends Element>(
       this: this & JQuery<Element>,
@@ -44,12 +38,6 @@ declare global {
     tap(action: (node: this) => void): this;
     tapIf(condition: (node: this) => boolean, action: (node: this) => void): this;
     collapseBrs(this: this & JQuery<Element>): this;
-    refineUrls(
-      this: this & JQuery<Element>,
-      hosts: MatchPattern[],
-      baseUrl: URL,
-      pathRewrite?: (path: string) => string,
-    ): this;
     isNewLineTextNode(this: this & JQuery<Node>): boolean;
     trimLeadingBrs(this: this & JQuery<Element>): this;
   }
@@ -173,27 +161,6 @@ $.fn.entries = function* () {
   }
 };
 
-function onNodeExists(jq: JQuery<Node>, selector: string, func: (node: JQuery) => void, maxCount: number, count: number) {
-  // console.log(`selector: ${selector}, maxCount: ${maxCount}, count: ${count}`);
-
-  if (count >= maxCount)
-    return;
-
-  let node = jq.find(selector);
-  let iframes = jq.find('iframe');
-  node = node.add(iframes.contents().find(selector));
-
-  if (node.isNotEmpty()) {
-    func(node);
-  } else {
-    setTimeout(() => onNodeExists(jq, selector, func, maxCount, count + 1), 500);
-  }
-};
-
-$.fn.onNodeExists = function (selector: string, func: (node: JQuery) => void, maxCount: number) {
-  return onNodeExists(this, selector, func, maxCount, 0);
-};
-
 function* enumerate<T>(j: JQuery<T>) {
   for (const value of j) {
     yield value;
@@ -303,104 +270,6 @@ $.fn.tapIf = function (condition, action) {
 
 $.fn.collapseBrs = function <T extends JQuery<Element>>(this: T) {
   this.each((i, e) => { e.collapseBrs(); });
-  return this;
-};
-
-$.fn.refineUrls = function <T extends JQuery<Element>>(
-  this: T,
-  hosts: MatchPattern[],
-  baseUrl: URL,
-  pathRewrite?: (path: string) => string,
-) {
-  const nodes = this;
-
-  const images: JQuery<Element>[] = [];
-  for (const e of nodes) {
-    const node = $(e);
-
-    let attrName: string;
-    switch (e.tagName) {
-      case 'A':
-        attrName = 'href';
-        break;
-      case 'IMG':
-        attrName = 'src';
-        images.push(node);
-        break;
-      default:
-        console.styled('unsupported tag: ', { text: e.tagName, color: 'blue' });
-        continue;
-    }
-
-    const src = node.attr(attrName);
-
-    if (!src)
-      continue;
-
-    if (!src.startsWith("http")) // 本站链接
-      continue;
-
-    let u: URL;
-    try {
-      u = new URL(src);
-    } catch (e) {
-      console.log('invalid url: ', src);
-      continue;
-    }
-
-    if (u.host === baseUrl.host) // 本站链接
-      continue;
-
-    if (hosts.matchesAny(u.host) === false)
-      continue;
-
-    if (pathRewrite) {
-      u.pathname = pathRewrite(u.pathname);
-    }
-
-    // 同站链接
-    u.protocol = baseUrl.protocol;
-    u.hostname = baseUrl.hostname;
-    u.port = baseUrl.port;
-
-    const newSrc = u.toString();
-    node.attr(attrName, newSrc);
-
-    const text = node.text();
-    if (!text)
-      continue;
-
-    const newText = text.replace(src, newSrc);
-    if (text === newText)
-      continue;
-
-    node.text(newText);
-  }
-
-  for (const node of images) {
-    const src = node.attr('src');
-    if (!src)
-      continue;
-
-    const link = $('<a>')
-      .css("display", "block")
-      .attr('rel', 'noreferrer')
-      .attr('href', src)
-      .attr('target', '_blank')
-      .text(src)
-      .insertAfter(node);
-
-    const image = node[0] as HTMLImageElement;
-    // img.complete can be true even if the image url is “broken".
-    // So need check that ".naturalHeight attribute is greater than 0"
-    if (image.complete && image.naturalHeight > 0) {
-      link.hide();
-    } else {
-      // onload doesn't fire if the image is being loaded from cache.
-      node.on('load', () => link.hide());
-    }
-  }
-
   return this;
 };
 

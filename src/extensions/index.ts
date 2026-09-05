@@ -4,4 +4,6 @@ import './jquery.css';
 import './jquery.static';
 import './jquery.events';
 import './jquery.observe';
+import './jquery.wait';
+import './jquery.urls';
 import './jquery';

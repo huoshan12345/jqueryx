@@ -6,7 +6,9 @@ declare global {
     title(this: this & JQuery<Element>, value: string): this;
     requiredTitle(this: this & JQuery<Element>): string;
     targetBlank(this: this & JQuery<Element>, onlyUpdate?: boolean): this;
+    /** Reads all descendant text, like jQuery.text(). */
     textContent(this: this & JQuery<Node>): string;
+    /** Sets each root's complete text, replacing descendants, like jQuery.text(value). */
     textContent(this: this & JQuery<Node>, value: string): this;
     requiredHref(this: this & JQuery<Element>): string;
     href(this: this & JQuery<Element>): string | undefined;
@@ -44,24 +46,16 @@ $.fn.targetBlank = function <T extends JQuery<Element>>(this: T, onlyUpdate: boo
 function textContent(this: JQuery<Node>): string;
 function textContent<T extends JQuery<Node>>(this: T, value: string): T;
 function textContent<T extends JQuery<Node>>(this: T, value?: string): T | string {
-  const nodes = this.textNodes(undefined, [], false)
-
   if (value == undefined) {
-    return nodes.text();
+    return this.text();
   }
-
-  if (nodes.isEmpty()) {
-    return this.text(value);
-  }
-
-  for (const { item, isFirst } of nodes.asEnumerable().position()) {
-    if (isFirst) {
-      item.textContent = value;
-    } else {
-      item.remove();
+  this.text(value);
+  // jQuery.text(value) skips standalone Text nodes; preserve this API's Node support.
+  return this.each((_, node) => {
+    if (node.nodeType === Node.TEXT_NODE) {
+      node.nodeValue = value;
     }
-  }
-  return this;
+  });
 }
 
 $.fn.textContent = textContent;

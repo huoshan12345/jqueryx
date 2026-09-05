@@ -18,10 +18,5 @@ await build({
     ...loaded.config.build,
     outDir: process.argv[2],
     emptyOutDir: false,
-    // Issue 8 tracks the missing dom entry; exercise the existing public entry here.
-    lib: {
-      ...library,
-      entry: { index: resolve('src/index.ts') },
-    },
   },
 });

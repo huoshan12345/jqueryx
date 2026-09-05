@@ -70,6 +70,20 @@ try {
   button.append('<span>');
   await Promise.resolve();
   assert.equal(callbacks, 1, 'Disconnecting the published subscriptions must stop all callbacks.');
+
+  const waiting = button.waitForNodes<HTMLSpanElement>('span.ready', { timeoutMs: 1_000 });
+  button.find('span').addClass('ready');
+  assert.equal((await waiting)[0], button.find('span')[0]);
+
+  const textRoots = $('<div>a<b>b</b></div><div>c</div>');
+  textRoots.textContent('updated');
+  assert.deepEqual(textRoots.map((_, node) => node.innerHTML).get(), ['updated', 'updated']);
+
+  const imageRoot = $('<div><img src="/image.png"></div>');
+  imageRoot.find('img').refineUrls([], new URL('https://example.com'), { addImageFallbackLinks: true });
+  assert.equal(imageRoot.find('a').attr('href'), '/image.png');
+  imageRoot.find('img').refineUrls([], new URL('https://example.com'));
+  assert.equal(imageRoot.find('a').length, 0);
 } finally {
   for (const observation of observations) {
     observation.disconnect();

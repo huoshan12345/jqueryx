@@ -13,6 +13,24 @@ export interface JQueryObservation {
   disconnect(): void;
 }
 
+export interface WaitForNodesOptions {
+  /** Finite non-negative milliseconds. Defaults to 30,000; zero checks only once. */
+  timeoutMs?: number;
+  /** Cancels the wait with signal.reason, including if already aborted. */
+  signal?: AbortSignal;
+  /** Includes accessible iframe documents and subsequent frame loads. Defaults to false. */
+  includeIframes?: boolean;
+}
+
+export interface RefineUrlsOptions {
+  pathRewrite?: (path: string) => string;
+  /**
+   * Adds/reuses a fallback link for every selected image with a src, even if its URL
+   * is not rewritten. Defaults to false, which removes links previously managed here.
+   */
+  addImageFallbackLinks?: boolean;
+}
+
 export interface EventHandlerOptions {
   /**
    * Handles synchronous throws and asynchronous rejections. Defaults to console.error.

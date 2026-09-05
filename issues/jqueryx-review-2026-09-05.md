@@ -60,7 +60,7 @@ onClick、onKeyDown 和 onEnterDown 保留返回 JQuery 的链式 API，新增�
 
 验证：`test/jquery.observe.test.ts` 的 13 项回归测试覆盖首次 mutation 前取消、整组清理、独立订阅、延迟回调屏蔽、启动钩子顺序、宿主默认值和显式覆盖、回调内清理、过滤、中途失败、空集合与同源 iframe。消费者运行时测试改用发布包返回的订阅进行清理，不再拦截原生 MutationObserver 收集句柄。
 
-### 4. [P2] onNodeExists 的轮询没有取消和完成契约
+### 4. [已修复 2026-09-05] [P2] onNodeExists 的轮询没有取消和完成契约
 
 位置：[jquery.ts:23](../src/extensions/jquery.ts#L23)、[jquery.ts:224](../src/extensions/jquery.ts#L224)。
 
@@ -70,9 +70,9 @@ onClick、onKeyDown 和 onEnterDown 保留返回 JQuery 的链式 API，新增�
 
 建议明确为 `waitForNode` 一类等待操作，返回 Promise，提供 timeout／AbortSignal；若继续使用 callback，则返回取消句柄。`maxCount` 应命名为 `maxAttempts`，避免与匹配节点数量混淆，并明确默认值、合法范围和耗尽行为。
 
-用户补充用途：等待页面中由 AJAX 等异步插入的节点出现，然后继续后续操作。因此这是一次性的等待操作，建议用 `waitForNodes<TElement extends Element = HTMLElement>(selector, options): Promise<JQuery<TElement>>` 替代回调轮询。此次仅记录设计，尚未改写 onNodeExists 的运行时行为。
+用户补充用途：等待页面中由 AJAX 等异步插入的节点出现，然后继续后续操作。因此这是一次性的等待操作，采用 `waitForNodes<TElement extends Element = HTMLElement>(selector, options): Promise<JQuery<TElement>>` 替代回调轮询。用户已确认此方案，旧 onNodeExists 已移除。
 
-建议契约：
+已实现的契约：
 
 - 对已经存在的稳定容器调用，例如 `await $(document).waitForNodes('.ajax-result', { timeoutMs: 30_000, signal })`。只查找后代；空根集合立即报错，避免对 `$('.尚不存在')` 这样的快照无限等待。
 - 先立即查找；已有匹配则完成。否则用 MutationObserver 监听子树的节点、属性和文本变化，每次重新查询；第一次查到至少一个节点时返回当时的匹配集合，仅完成一次，不等待所有未来节点。
@@ -81,6 +81,10 @@ onClick、onKeyDown 和 onEnterDown 保留返回 JQuery 的链式 API，新增�
 - iframe 用显式 `includeIframes` 选项，默认 false。开启时只检查可访问的同源文档，同时处理新增 iframe 和 load 后的文档替换；跨源文档跳过。避免默认观察所有 frame 的开销和隐含边界。
 
 这能直接表达 `const nodes = await ...; nodes.doSomething()` 的使用顺序，也让后续操作的异常自然进入调用方的 try/catch。
+
+实现位于 `src/extensions/jquery.wait.ts`，选项类型 WaitForNodesOptions 从根入口导出。selector 使用标准 CSS 选择器，由原生 querySelectorAll 查询；不支持 jQuery 专属伪类。这样避免 jQuery 查询复杂选择器时临时修改根节点 ID，造成观察器反馈循环或多个等待之间互相触发。
+
+验证：29 项等待测试覆盖已有／异步节点、多根去重、属性／字符数据变化、DocumentFragment、超时边界、AbortSignal、非法输入、注册失败清理、复杂选择器与并发等待、iframe 新增／嵌套／load 文档替换／移除、不可访问文档及后续错误。iframe 导航与访问拒绝使用受控文档替换和异常模拟，未声称验证真实浏览器导航。发布包消费者也验证异步等待，类型测试验证结果泛型、根节点约束及旧 API 已移除。
 
 ### 5. [已修复 2026-09-05] [P2] 扩展签名丢失 JQuery 的元素类型，部分声明直接不真实
 
@@ -98,7 +102,7 @@ onClick、onKeyDown 和 onEnterDown 保留返回 JQuery 的链式 API，新增�
 
 验证：独立消费者编译真实发射的声明，覆盖各模块按钮链、回调和序列泛型、替换与 fallback 类型、SVG／Text 正常用法，以及错误 DOM 能力调用和颜色非空赋值的拒绝。另有 3 项运行时测试验证链式集合身份、Text／SVG 枚举身份和空集合颜色。完整测试共 63 项通过；类型检查和声明构建通过。消费者仍用 skipLibCheck 隔离 issue 10，完整 Vite 构建仍受 issue 8 阻塞。
 
-### 6. [P2] textContent 与 ownText 的文本范围和集合写入规则不一致
+### 6. [已修复 2026-09-05] [P2] textContent 与 ownText 的文本范围和集合写入规则不一致
 
 位置：[jquery.attr.ts:44](../src/extensions/jquery.attr.ts#L44)、[jquery.ts:313](../src/extensions/jquery.ts#L313)。
 
@@ -108,7 +112,13 @@ onClick、onKeyDown 和 onEnterDown 保留返回 JQuery 的链式 API，新增�
 
 建议明确两种可理解的契约：完整文本直接使用现有 `.text()`；仅直接文本统一为 `.ownText()`，逐元素设置并保留元素子节点。若保留 textContent 别名，应与其中一种契约完全一致，不能继续保留第三套规则。
 
-### 7. [P2] refineUrls 无条件承担图片备用链接的插入职责
+复核用户修改：getter 已改为遍历后代文本，但 setter 仍将整个集合合并写入。回归测试复现两个根元素设置后得到 `['new', '']`，并且是否有文本仍会影响子元素是否被删除。用户随后明确选择逐根设置完整文本、替换子节点（等同 .text(value)）。
+
+修复：textContent getter 委托给 .text()，setter 委托给 .text(value)，每个根元素都得到完整的新文本并替换后代。jQuery setter 本身跳过独立 Text 节点，因此额外保留本 API 对 Text.nodeValue 的写入支持。ownText 的直接文本契约保留，其余独立缺陷继续由 issue 13、16 跟踪。
+
+验证：6 项回归测试覆盖后代文本顺序、逐根写入、空子元素与已有文本的一致行为、空字符串、空集合、独立 Text、DocumentFragment、同源 iframe 和与 ownText 的范围区别；消费者运行时测试也验证多根替换行为。
+
+### 7. [已修复 2026-09-05] [P2] refineUrls 无条件承担图片备用链接的插入职责
 
 位置：[jquery.ts:369](../src/extensions/jquery.ts#L369)、[jquery.ts:435](../src/extensions/jquery.ts#L435)。
 
@@ -118,15 +128,25 @@ IMG 在验证 URL 和 hosts 之前就加入 images 列表，因此即使完全�
 
 按用户确认的方向，将备用链接行为放入命名清晰的 option，例如 `addImageFallbackLinks`；明确默认值及作用对象。启用时复用／更新已有备用链接，避免重复节点和订阅。若以 URL 改写为主，`rewriteUrls` 比 `refineUrls` 更能表达职责。
 
+修复：URL 相关实现移至 `src/extensions/jquery.urls.ts`，保留 refineUrls 名称，第三个参数接受 RefineUrlsOptions（从根入口导出），包含 pathRewrite 和 addImageFallbackLinks；原有第三参数直接传路径回调的形式继续可用。addImageFallbackLinks 默认 false；显式开启时作用于选中集合内所有有 src 的图片，包括未命中 hosts 的图片。链接使用改写后的最终 src，不受 URL 是否改写的偶然结果影响。
+
+每个图片复用同一链接和 load/error 监听器，重复调用更新 href、文本、位置与显隐状态。关闭选项或 src 为空时，移除本方法管理的链接和监听器，不影响用户已有链接。链接使用图片所属 document 创建，成功加载时隐藏，失败或尚未完成时显示。
+
+验证：11 项回归测试覆盖默认关闭、不匹配 hosts、重复调用、URL 更新、关闭／重新开启、空 src、缓存成功／load／error、文本安全写入、图片移动、旧／新路径回调、重复集合元素及 iframe 所属文档；消费者类型与运行时测试验证新选项可从发布入口使用。
+
 ## 构建、发布和验证
 
-### 8. [P1] Vite 配置引用不存在的 src/dom.ts，构建无法完成
+### 8. [已修复 2026-09-05] [P1] Vite 配置引用不存在的 src/dom.ts，构建无法完成
 
 位置：[vite.config.ts:15](../vite.config.ts#L15)。
 
 入口声明包含 `src/dom.ts`，仓库不存在该文件，package exports 也只声明根入口。实际运行 `pnpm run build:ts` 失败：`[UNRESOLVED_ENTRY] Cannot resolve entry module src/dom.ts`。这会阻止 pnpm build 和发布。
 
 建议依照 jqueryx 的真实入口删除遗留 dom 配置，或实现并导出确有需要的入口，不应只让源码 type-check 代替打包验证。
+
+复核时磁盘上的 vite.config.ts 仍包含该入口；经用户确认，已移除 dom，仅保留 index。包测试构建 helper 同步移除覆盖入口的临时绕过，直接使用实际 Vite 配置。
+
+验证：完整 pnpm build（类型检查、Vite 打包、声明生成）通过。当前全部 109 项测试通过，包含真实配置构建后的消费者验证。此前各条目中隔离 issue 8 的记录是历史验证结果；当前已不再需要该隔离。issue 10 的依赖声明冲突仍独立存在，消费者测试继续使用现有 skipLibCheck。
 
 ### 9. [已修复 2026-09-05] [P2] 发布声明没有带入所依赖的 jQuery 基础类型
 
