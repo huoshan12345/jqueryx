@@ -141,22 +141,26 @@ $.fn.onClick = function (
 };
 
 $.fn.onClickGotoHref = function <T extends JQuery<Element>>(this: T, openNew?: boolean) {
-  if (this.isNot('a')) {
-    return this;
-  }
-  if (openNew) {
-    this.targetBlank();
+  for (const item of this.enumerate()) {
+    if (item.isNot('a')) {
+      continue;
+    }
+    if (openNew) {
+      item.targetBlank();
+    }
+
+    // add an event listener to the window capturing and canceling all events
+    for (const element of item) {
+      element.addEventListener('click', e => e.stopPropagation(), true);
+    }
+
+    item
+      .off('click')
+      .attr('onclick', null)
+      .removeAttr('onclick');
   }
 
-  // add an event listener to the window capturing and canceling all events
-  for (const element of this) {
-    element.addEventListener('click', e => e.stopPropagation(), true);
-  }
-
-  return this
-    .off('click')
-    .attr('onclick', null)
-    .removeAttr('onclick');
+  return this;
 };
 
 function bindKeyDown<T extends JQuery<HTMLElement>>(

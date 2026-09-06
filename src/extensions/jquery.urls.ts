@@ -21,7 +21,7 @@ $.fn.refineUrls = function <T extends JQuery<Element>>(
 ) {
   // Preserve the existing path-rewrite callback form.
   const settings = typeof options === 'function' ? { pathRewrite: options } : options ?? {};
-  const { pathRewrite } = settings;
+  const { pathRewrite, addImageFallbackLinks } = settings;
   const nodes = this;
 
   const images: JQuery<Element>[] = [];
@@ -76,7 +76,7 @@ $.fn.refineUrls = function <T extends JQuery<Element>>(
     const newSrc = u.toString();
     node.attr(attrName, newSrc);
 
-    const text = node.text();
+    const text = node.textContent();
     if (!text)
       continue;
 
@@ -84,11 +84,11 @@ $.fn.refineUrls = function <T extends JQuery<Element>>(
     if (text === newText)
       continue;
 
-    node.text(newText);
+    node.textContent(newText);
   }
 
   for (const node of images) {
-    updateImageFallback(node[0] as HTMLImageElement, settings.addImageFallbackLinks === true);
+    updateImageFallback(node[0] as HTMLImageElement, addImageFallbackLinks === true);
   }
 
   return this;
@@ -134,4 +134,3 @@ function updateImageFallback(image: HTMLImageElement, enabled: boolean): void {
   }
   fallback.updateVisibility();
 }
-
