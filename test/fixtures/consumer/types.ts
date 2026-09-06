@@ -1,5 +1,5 @@
 import 'jqueryx';
-import { ClickOptions, type TextNodesOptions } from 'jqueryx';
+import { ClickOptions } from 'jqueryx';
 import type { Enumerable } from 'linqx';
 import type { MutationObserverOptionsInit } from 'builtinx';
 import type { WaitForNodesOptions, RefineUrlsOptions } from 'jqueryx';
@@ -14,15 +14,14 @@ buttons.onClick((target, originalEvent) => {
   const nativeEvent: MouseEvent | undefined = originalEvent;
   void nativeEvent;
 }, new ClickOptions({ preventDefault: false }));
-const textOptions: TextNodesOptions = {
-  traverseSelector: 'button, span',
-  excludeSelectors: ['.ignore'] as const,
-};
-const collectedTexts: JQuery<Text> = buttons.textNodes(textOptions);
+const collectedTexts: JQuery<Text> = buttons.textNodes('button, span', ['.ignore'] as const);
+buttons.textNodes(undefined, ['a']);
 // @ts-expect-error Text traversal only accepts DOM nodes.
 $({ value: 1 }).textNodes();
-// @ts-expect-error Positional traversal parameters were replaced by named options.
+// @ts-expect-error The redundant skipAnchor argument has been removed.
 buttons.textNodes('button', [], false);
+// @ts-expect-error Traversal arguments are passed directly.
+buttons.textNodes({ traverseSelector: 'button' });
 void collectedTexts;
 buttons.onClick(() => buttons.addClass('clicked'), {
   onError: error => String(error),
@@ -47,7 +46,7 @@ void [empty, title, inputs, sequence, wrapped];
 
 buttons.title('ready').href('/').targetBlank().voidHref().disable().enable()[0].disabled = true;
 buttons.pointer().underline().flex().flexWrap().inlineBlock().inlineFlex()
-  .cssImportant('color', 'red').tryCss('color', 'red').tryAddClass('ready')
+  .cssImportant('color', 'red').cssIfNotEmpty('color', 'red').addClassIfNotEmpty('ready')
   .padding(1).color('red').visible(true)[0].disabled = true;
 buttons.textContent('ready').ownText('ready').throwIfEmpty()
   .collapseBrs().trimLeadingBrs().refineUrls([], new URL('https://example.com'))[0].disabled = true;
@@ -110,13 +109,23 @@ const onlyText: JQuery<Text> = text.ifEmpty('div');
 const optionalColor: string | undefined = $().color();
 // @ts-expect-error An empty collection has no color.
 const requiredColor: string = $().color();
-const optionalHex: string | undefined = $().colorHex(false, true);
-// @ts-expect-error Falling back to the original color can return undefined.
-const requiredHex: string = $().colorHex(false, true);
-const fallbackHex: string = $().colorHex(false, '#000000');
-const throwingHex: string = $().colorHex(false);
+const optionalHex: string | undefined = $().colorHex(true);
+// @ts-expect-error Conversion can return undefined.
+const requiredHex: string = $().colorHex();
+const fallbackHex: string = $().colorHex() ?? '#000000';
+// @ts-expect-error The fallback argument has been removed.
+$().colorHex(false, true);
+// @ts-expect-error The uppercase argument is passed directly.
+$().colorHex({ uppercase: true });
+// @ts-expect-error The old conditional CSS name was removed.
+buttons.tryCss('color', 'red');
+// @ts-expect-error The old conditional class name was removed.
+buttons.tryAddClass('ready');
+// @ts-expect-error Text nodes do not have a CSS color.
+text.colorHex();
+svg.cssIfNotEmpty('fill', 'red').addClassIfNotEmpty(['ready'])[0].viewBox;
 void [replacement, svgNodes, htmlNodes, withFallback, onlyText, optionalColor, requiredColor,
-  optionalHex, requiredHex, fallbackHex, throwingHex];
+  optionalHex, requiredHex, fallbackHex];
 
 const waitOptions: WaitForNodesOptions = { timeoutMs: 500, signal: new AbortController().signal, includeIframes: true };
 const matchingButtons: Promise<JQuery<HTMLButtonElement>> = $(document).waitForNodes<HTMLButtonElement>('button', waitOptions);

@@ -1,7 +1,6 @@
 import { Enumerable } from 'linqx';
 import type { Nullishable } from 'builtinx';
 import { Queue } from 'builtinx';
-import type { TextNodesOptions } from '@/types/lib';
 
 declare global {
   interface JQuery<TElement = HTMLElement> {
@@ -16,11 +15,20 @@ declare global {
       includeSelf?: boolean,
     ): JQuery<Element>;
     /**
-     * Collects unique Text nodes in document order using subtree pruning options.
+     * Collects unique Text nodes in document order using subtree pruning.
      * Includes Text roots and template contents, but does not enter iframe documents.
      * To traverse an iframe document, supply that document as a root explicitly.
+     * @param traverseSelector Only traverse matching elements, including roots;
+     * non-matching elements prune their entire subtree. Omit to traverse all elements.
+     * Text, Document and DocumentFragment roots are not matched against this selector.
+     * @param excludeSelectors Excludes matching elements and their entire subtrees,
+     * including roots. Accepts jQuery selectors; defaults to []. The array is never modified.
      */
-    textNodes(this: this & JQuery<Node>, options?: TextNodesOptions): JQuery<Text>;
+    textNodes(
+      this: this & JQuery<Node>,
+      traverseSelector?: string,
+      excludeSelectors?: readonly string[],
+    ): JQuery<Text>;
     visible(this: this & JQuery<Element>): boolean;
     visible(this: this & JQuery<Element>, value: boolean): this;
     checked(): boolean;
@@ -97,8 +105,10 @@ $.fn.isNot = function (selector: string): boolean {
   return this.is(selector) === false;
 };
 
-$.fn.textNodes = function (options: TextNodesOptions = {}): JQuery<Text> {
-  const { traverseSelector, excludeSelectors = ['a', 'button', 'input', 'iframe'] } = options;
+$.fn.textNodes = function (
+  traverseSelector?: string,
+  excludeSelectors: readonly string[] = [],
+): JQuery<Text> {
   const queue = new Queue<Node>();
   for (const root of this) {
     queue.enqueue(root);

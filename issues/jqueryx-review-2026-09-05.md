@@ -343,10 +343,10 @@ README 的包名、徽章、安装和导入示例均为 builtinx，主体描述�
 另外已检查其余公开名称、参数和辅助类型，以下是非阻塞的 API 整理建议，不另计问题数：
 
 - [已整理 2026-09-06] `onClick`／`onKeyDown` 的回调参数已使用 `target`、`originalEvent`／`key`。补充说明 target 可为绑定元素的后代、originalEvent 为原生 MouseEvent（jQuery 触发时可能缺省）；内部 currentTarget 变量改名 boundElement，键过滤参数改名 requiredKey。
-- `colorHex(toUpperCase, defaultValue?: string | true)` 用 true 表示返回原始颜色，却仍声明返回 hex 的方法名；建议使用命名选项，明确 alpha、无法转换和空集合的处理。
-- `tryCss`／`tryAddClass` 的 try 表示“有值才执行”，不是捕获失败；应在文档中明确，或使用表达条件赋值的名称。
+- [已整理 2026-09-06] colorHex 改为 colorHex(uppercase?: boolean)，参数 uppercase 默认 false。读取首元素的计算 rgb()/rgba() 颜色，不透明颜色返回 #rrggbb，其他颜色返回保留 alpha 的 #rrggbbaa，分量四舍五入为一个字节。空集合和不支持的格式（例如未转换为 rgb()/rgba() 的广色域颜色）返回 undefined；调用方通过 ?? 设置默认值。删除原颜色回退和失败抛错重载，uppercase 直接传入，不再使用 ColorHexOptions 对象。
+- [已整理 2026-09-06] tryCss／tryAddClass 更名为 cssIfNotEmpty／addClassIfNotEmpty，移除旧名称。跳过 undefined 和空字符串，class 数组为空时也直接返回；保留多元素处理和原集合链式返回，不捕获底层错误。消费者类型测试检查新名称和移除的旧接口，运行时覆盖空值与多元素行为。
 - [已验证 2026-09-06] 用户将根入口改为 export * from './types/lib'，ClickOptions 已能作为运行时类导入，JQueryNode／JQueryTextInfo 等类型也已导出。发布包消费者验证 ClickOptions 的默认值、构造参数覆盖和 onClick 参数类型。
-- [已整理 2026-09-06] 用户确认 textNodes 的 selector 用于剪枝，并已通过复制 skipTags 修复输入数组被修改的问题；修改前以冻结数组验证通过。现改为 textNodes(options?: TextNodesOptions)：traverseSelector 只对元素（包括元素根）判断，未匹配则剪枝；excludeSelectors 支持只读选择器数组，替换默认的 a/button/input/iframe 排除列表，[] 表示不排除。删除冗余 skipAnchor 参数，包含 anchor 可传 ['button', 'input', 'iframe']。保留文档顺序、节点身份及 template 内容遍历；重叠根避免重复遍历；Text／Document／DocumentFragment 根不参与元素选择器匹配。不自动进入 iframe 文档，需显式将其 document 作为根。textContent 的内部调用已迁移，新类型随根入口导出。新增 10 项遍历测试及发布消费者用例，全部 208 项测试、严格类型检查及完整构建通过。
+- [已整理 2026-09-06] 用户确认 textNodes 的 selector 用于剪枝，并已通过复制 skipTags 修复输入数组被修改的问题；修改前以冻结数组验证通过。现改为 textNodes(traverseSelector?: string, excludeSelectors?: readonly string[])：traverseSelector 只对元素（包括元素根）判断，未匹配则剪枝；excludeSelectors 支持只读选择器数组，按用户后续要求默认 []，不排除任何元素。删除冗余 skipAnchor 参数，需要排除子树时直接指定 excludeSelectors。保留文档顺序、节点身份及 template 内容遍历；重叠根避免重复遍历；Text／Document／DocumentFragment 根不参与元素选择器匹配。不自动进入 iframe 文档，需显式将其 document 作为根。textContent 的内部调用已迁移，两个参数直接传入，不再使用 TextNodesOptions 对象。遍历测试及发布消费者用例验证默认包含 anchor／button、显式排除和只读输入。本轮全部 230 项测试、严格类型检查及完整构建通过。
 
 ## 验证记录与覆盖边界
 

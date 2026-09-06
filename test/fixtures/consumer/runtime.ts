@@ -90,10 +90,16 @@ try {
   textRoots.textContent('updated');
   assert.deepEqual(textRoots.map((_, node) => node.innerHTML).get(), ['updated<b></b>', 'updated']);
   assert.equal(textRoots.find('b')[0], preservedChild);
-  const traversalOptions = Object.freeze({ excludeSelectors: Object.freeze(['button']) });
+  const excludedSelectors = Object.freeze(['button']);
   const traversalRoot = $('<div>a<a>b</a><button>c</button></div>');
-  assert.deepEqual(traversalRoot.textNodes(traversalOptions).toArray().map(node => node.data), ['a', 'b']);
-  assert.deepEqual(traversalOptions.excludeSelectors, ['button']);
+  assert.deepEqual(traversalRoot.textNodes(undefined, excludedSelectors).toArray().map(node => node.data), ['a', 'b']);
+  assert.deepEqual(excludedSelectors, ['button']);
+  assert.deepEqual(traversalRoot.textNodes().toArray().map(node => node.data), ['a', 'b', 'c']);
+  const styled = $('<button>').cssIfNotEmpty('color', 'rgba(171, 205, 239, 0.5)').addClassIfNotEmpty('ready');
+  assert.equal(styled.colorHex(), '#abcdef80');
+  assert.equal(styled.colorHex(true), '#ABCDEF80');
+  assert.equal(styled.hasClass('ready'), true);
+  assert.equal($().colorHex(), undefined);
 
   const imageRoot = $('<div><img src="/image.png"></div>');
   imageRoot.find('img').refineUrls([], new URL('https://example.com'), { addImageFallbackLinks: true });

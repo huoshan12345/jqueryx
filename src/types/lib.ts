@@ -31,21 +31,6 @@ export interface RefineUrlsOptions {
   addImageFallbackLinks?: boolean;
 }
 
-export interface TextNodesOptions {
-  /**
-   * Only descend into elements matching this selector, including root elements.
-   * A non-matching element prunes its entire subtree. Text and fragment/document
-   * roots are not matched against this selector. Omit to traverse every element.
-   */
-  traverseSelector?: string;
-  /**
-   * Matching elements and their entire subtrees are excluded, including roots.
-   * Replaces the default ['a', 'button', 'input', 'iframe']; use [] to exclude none.
-   * Accepts any jQuery element selectors. The caller's array is never modified.
-   */
-  excludeSelectors?: readonly string[];
-}
-
 export interface EventHandlerOptions {
   /**
    * Handles synchronous throws and asynchronous rejections. Defaults to console.error.

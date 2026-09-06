@@ -16,9 +16,8 @@ test('enumeration and filtering preserve Text and SVG node identities', () => {
   expect(nodes.where(node => node === text).toArray()).toEqual([text]);
 });
 
-test('color and the original-color fallback are undefined for empty collections', () => {
+test('color and colorHex return undefined for empty collections and permit caller fallbacks', () => {
   expect($().color()).toBeUndefined();
-  expect($().colorHex(false, true)).toBeUndefined();
-  expect($().colorHex(false, '#000000')).toBe('#000000');
-  expect(() => $().colorHex(false)).toThrow();
+  expect($().colorHex()).toBeUndefined();
+  expect($().colorHex() ?? '#000000').toBe('#000000');
 });

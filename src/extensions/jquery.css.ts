@@ -10,20 +10,22 @@ declare global {
     inlineFlex(this: this & JQuery<StyledElement>): this;
     /** Sets a CSS property with !important. Use a CSS property name and an explicit CSS value, including units. */
     cssImportant(this: this & JQuery<StyledElement>, propertyName: string, value: string): this;
-    tryCss(this: this & JQuery<StyledElement>, propertyName: string, value?: string): this;
-    tryAddClass(this: this & JQuery<Element>, className?: string | string[]): this;
+    /** Sets CSS unless value is undefined or an empty string. Does not catch errors. */
+    cssIfNotEmpty(this: this & JQuery<StyledElement>, propertyName: string, value?: string): this;
+    /** Adds classes unless the input is undefined or empty. Does not catch errors. */
+    addClassIfNotEmpty(this: this & JQuery<Element>, classNames?: string | string[]): this;
     padding(this: this & JQuery<StyledElement>, value: string | number): this;
     color(this: this & JQuery<StyledElement>, value: string, important?: boolean): this;
     color(this: this & JQuery<StyledElement>): string | undefined;
+    /**
+     * Converts the first element's computed rgb()/rgba() color to #rrggbb or
+     * #rrggbbaa for non-opaque colors, rounding each component to one byte.
+     * Empty collections and unsupported color formats return undefined.
+     * @param uppercase Uses uppercase hex digits. Defaults to false.
+     */
     colorHex(
       this: this & JQuery<StyledElement>,
-      toUpperCase: boolean,
-      defaultValue?: string,
-    ): string;
-    colorHex(
-      this: this & JQuery<StyledElement>,
-      toUpperCase: boolean,
-      defaultValue: string | true | undefined,
+      uppercase?: boolean,
     ): string | undefined;
   }
 }
@@ -63,16 +65,16 @@ $.fn.cssImportant = function <T extends JQuery<StyledElement>>(
   return this.each((i, e) => e.style.setProperty(propertyName, value, 'important'));
 };
 
-$.fn.tryCss = function <T extends JQuery<StyledElement>>(this: T, propertyName: string, value?: string) {
+$.fn.cssIfNotEmpty = function <T extends JQuery<StyledElement>>(this: T, propertyName: string, value?: string) {
   if (value) {
     this.css(propertyName, value);
   }
   return this;
 };
 
-$.fn.tryAddClass = function <T extends JQuery<Element>>(this: T, className?: string | string[]) {
-  if (className) {
-    this.addClass(className);
+$.fn.addClassIfNotEmpty = function <T extends JQuery<Element>>(this: T, classNames?: string | string[]) {
+  if (classNames?.length) {
+    this.addClass(classNames);
   }
   return this;
 };
@@ -100,30 +102,27 @@ function color<T extends JQuery<StyledElement>>(
 }
 $.fn.color = color;
 
-const regRgba = /rgba?\((\d+),\s*(\d+),\s*(\d+)(?:,\s*[\d\.]+)?\)/i;
-function colorHex(this: JQuery<StyledElement>, toUpperCase: boolean, defaultValue?: string): string;
+// Computed sRGB colors use comma-separated rgb()/rgba() serialization.
+const computedRgbPattern = /^rgba?\(\s*(\d+(?:\.\d+)?)\s*,\s*(\d+(?:\.\d+)?)\s*,\s*(\d+(?:\.\d+)?)\s*(?:,\s*(\d*\.?\d+)\s*)?\)$/i;
+
 function colorHex(
   this: JQuery<StyledElement>,
-  toUpperCase: boolean,
-  defaultValue?: string | true,
-): string | undefined;
-function colorHex(
-  this: JQuery<StyledElement>,
-  toUpperCase: boolean,
-  defaultValue?: string | true,
+  uppercase: boolean = false,
 ): string | undefined {
-  const color = this.color();
-  const match = color?.match(regRgba);
+  const match = this.color()?.trim().match(computedRgbPattern);
   if (!match) {
-    if (defaultValue === true) {
-      return color;
-    }
-    return defaultValue ?? Error.throw(`Cannot convert color '${color}' to hex.`);
+    return undefined;
   }
 
-  const r = parseInt(match[1], 10);
-  const g = parseInt(match[2], 10);
-  const b = parseInt(match[3], 10);
-  return BuiltinX.Color.rgbToHex(r, g, b, toUpperCase);
+  const channels = match.slice(1, 4).map(Number);
+  const alpha = match[4] === undefined ? 1 : Number(match[4]);
+  if (channels.some(channel => channel > 255) || alpha > 1) {
+    return undefined;
+  }
+  if (alpha < 1) {
+    channels.push(alpha * 255);
+  }
+  const hex = '#' + channels.map(channel => Math.round(channel).toString(16).padStart(2, '0')).join('');
+  return uppercase ? hex.toUpperCase() : hex;
 }
 $.fn.colorHex = colorHex;
