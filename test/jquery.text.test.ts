@@ -18,13 +18,13 @@ test.each([
   expect($(document.createTextNode(value)).isNewLineTextNode()).toBe(expected);
 });
 
-test('isNewLineTextNode requires all members to match and treats empty collections as true', () => {
+test('isNewLineTextNode requires a nonempty collection with all members matching', () => {
   const newline = document.createTextNode('\n');
   expect($.from<Node>([newline, document.createTextNode('\r')]).isNewLineTextNode()).toBe(true);
   expect($.from<Node>([newline, document.createTextNode('text')]).isNewLineTextNode()).toBe(false);
   expect($(document.createComment('\n')).isNewLineTextNode()).toBe(false);
   expect($('<div>\n</div>').isNewLineTextNode()).toBe(false);
-  expect($().isNewLineTextNode()).toBe(true);
+  expect($().isNewLineTextNode()).toBe(false);
 });
 
 test('collapseBrs visits each root and nested breaks while preserving unrelated content', () => {

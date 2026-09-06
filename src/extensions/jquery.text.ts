@@ -17,7 +17,7 @@ declare global {
     ownText(this: this & JQuery<Node>, value: string): this;
     /** Removes sibling BRs and newline-only Text nodes immediately following descendant BRs; returns this. */
     collapseBrs(this: this & JQuery<Element>): this;
-    /** True when every root is Text containing only whitespace and at least one newline; true when empty. */
+    /** True when nonempty and every root is Text containing only whitespace and at least one newline. */
     isNewLineTextNode(this: this & JQuery<Node>): boolean;
     /** Removes each root's leading BRs and newline-only Text nodes, stopping at any other child; returns this. */
     trimLeadingBrs(this: this & JQuery<Element>): this;
@@ -117,7 +117,8 @@ $.fn.collapseBrs = function <T extends JQuery<Element>>(this: T) {
 };
 
 $.fn.isNewLineTextNode = function <T extends Node>(this: JQuery<T>): boolean {
-  return this.asEnumerable().all(m => BuiltinX.Node.isNewLineTextNode(m));
+  return this.isNotEmpty()
+    && this.asEnumerable().all(m => BuiltinX.Node.isNewLineTextNode(m));
 };
 
 $.fn.trimLeadingBrs = function <T extends JQuery<Element>>(this: T) {

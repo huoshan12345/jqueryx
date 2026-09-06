@@ -146,7 +146,7 @@ console.log(texts.asEnumerable().select(node => node.data).toArray()); // ['a', 
 | `ownText()` | Concatenates direct child Text content across roots; a Text root contributes its own value. Empty returns `''`. |
 | `ownText(value)` | For each Element/DocumentFragment root, updates its first direct Text and removes later direct Text nodes, or inserts at the beginning if absent. Updates Text roots directly and skips other root types. Preserves descendant text in child elements; returns `this`. |
 | `collapseBrs()` | Finds descendant `br` elements in each root and removes following sibling `br` elements and newline-only Text nodes until another kind of sibling is reached. Returns `this`. |
-| `isNewLineTextNode()` | Whether **every** root is Text containing only whitespace and at least one `\r` or `\n`. Spaces alone do not match. Empty returns `true`. |
+| `isNewLineTextNode()` | Whether the collection is **nonempty** and every root is Text containing only whitespace and at least one `\r` or `\n`. Spaces alone do not match. Empty returns `false`. |
 | `trimLeadingBrs()` | Removes each root's leading `br` elements and newline-only Text nodes. Stops at other children, including comments and spaces without newlines. Returns `this`. |
 
 Both text setters accept `''` and preserve non-text node identities, event handlers and data. They do not behave like jQuery `.text(value)`, which replaces element children. `textContent(value)` can change descendant text in a Document but inserts nothing if a non-Element/non-fragment root has no Text. Neither getter includes Comment/CDATA contents as Text. `ownText` does not automatically enter `template.content`. Line-break helpers do not automatically enter templates, shadow trees or iframe documents.
@@ -373,19 +373,6 @@ nodes.refineUrls(['old.example', /^cdn\./], new URL('https://new.example:8443/')
 });
 console.log(nodes.eq(0).href()); // 'https://new.example:8443/archive/a?q=1#top'
 ```
-
-## Exported types
-
-| Export from jqueryx | Purpose |
-| --- | --- |
-| `ClickOptions` | Runtime class of click defaults with optional constructor overrides. |
-| `EventHandlerOptions` | Optional onError(error) callback returning a value or Promise. |
-| `WaitForNodesOptions` | Polling, timeout, cancellation and iframe options. |
-| `RefineUrlsOptions` | Path transformation and managed image-fallback options. |
-| `JQueryMutationCallback<TElement>` | `(mutations: MutationRecord[], observer: MutationObserver, jQuery: JQuery<TElement>) => void`. |
-| `JQueryObservation` | Group subscription exposing `disconnect(): void`. |
-| `JQueryNode` | `JQuery<HTMLNode>`; builtinx HTMLNode is HTMLElement, Document, Text or Comment. Use `JQuery<Node>` for broader node types. |
-| `JQueryTextInfo` | Consumer data: required `text: string or number`, optional `color: string`, `classNames: string[]`, `action: (e: JQuery) => void`. Type only; jqueryx does not render it or invoke its action automatically. |
 
 ## Development and tests
 
