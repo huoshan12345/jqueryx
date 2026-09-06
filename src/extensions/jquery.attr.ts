@@ -6,11 +6,12 @@ declare global {
     title(this: this & JQuery<Element>, value: string): this;
     requiredTitle(this: this & JQuery<Element>): string;
     targetBlank(this: this & JQuery<Element>, onlyUpdate?: boolean): this;
-    /** Reads all descendant text, like jQuery.text(). */
+    /** Reads descendant Text nodes, including template contents. */
     textContent(this: this & JQuery<Node>): string;
     /**
      * Merges each root's descendant text into its first Text node, preserving non-text nodes.
      * Inserts text at the start of an element or fragment that has no Text nodes.
+     * HTML template roots store the inserted text in their content fragment.
      */
     textContent(this: this & JQuery<Node>, value: string): this;
     requiredHref(this: this & JQuery<Element>): string;
@@ -61,9 +62,14 @@ function textContent<T extends JQuery<Node>>(this: T, value?: string): T | strin
     const texts = item.textNodes();
     if (texts.isEmpty()) {
       const root = item[0];
-      if (root.nodeType === Node.ELEMENT_NODE || root.nodeType === Node.DOCUMENT_FRAGMENT_NODE) {
-        const text = root.ownerDocument!.createTextNode(value);
-        root.insertBefore(text, root.firstChild);
+      const target = $.isElement(root)
+        && root.namespaceURI === 'http://www.w3.org/1999/xhtml'
+        && root.localName === 'template'
+        ? (root as HTMLTemplateElement).content
+        : root;
+      if (target.nodeType === Node.ELEMENT_NODE || target.nodeType === Node.DOCUMENT_FRAGMENT_NODE) {
+        const text = target.ownerDocument!.createTextNode(value);
+        target.insertBefore(text, target.firstChild);
       }
       continue;
     }

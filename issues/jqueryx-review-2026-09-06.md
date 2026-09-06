@@ -140,7 +140,7 @@ Element.querySelectorAll 的选择器可以依赖根元素以外的祖先，但 
 
 修复：接受大小写不敏感的 HTTP(S) 前缀和协议相对地址，使用 new URL(src, el.baseURI) 解析，再按解析后的 protocol 与 host 筛选。保留普通相对路径、查询及片段不改写的既有策略。新增链接与图片的协议相对/大小写协议、同站和未匹配主机、非 HTTP 协议、owner document 基准地址、路径重写、端口/查询/片段及图片备用链接用例。第 9、10 项合计新增 34 项回归测试；315 项测试及完整构建通过。
 
-### 11. [部分修复 2026-09-06，仅空模板写入问题待修复] [P2] textContent 在 template 上的 getter 与 setter 操作不同范围
+### 11. [已修复并验证 2026-09-06] [P2] textContent 在 template 上的 getter 与 setter 操作不同范围
 
 位置：[jquery.attr.ts:49](D:/projects/_libraries/jqueryx/src/extensions/jquery.attr.ts:49)。
 
@@ -152,11 +152,11 @@ setter 通过 textNodes 进入 template.content，但 getter 委托 jQuery.text(
 
 复核：用户已改为通过 textNodes() 获取文本并拼接。新增回归测试确认已有文本的模板、单一路径的嵌套模板及普通元素/模板混合集合可以读取并读回写入值，模板子元素、Text 节点及 jQuery 数据和事件保留。
 
-剩余问题一：空模板或仅含空 button 的模板调用 textContent('new')，setter 的无文本分支仍向 template 元素自身插入 Text，而 getter 经 contents() 读取 template.content，结果仍为空字符串。应将这类模板的插入目标改为 template.content。
+空模板修复：setter 的无文本分支将 HTML template 的插入目标改为 template.content，并使用目标的 ownerDocument 创建 Text。通过原生 Element 判断及命名空间/localName 识别模板，支持 iframe 和无 window 的独立文档，同时不将 SVG 中同名元素当成 HTML 模板。其他节点保持原插入规则。
 
 DFS 复核：用户已将根节点和子节点反序入栈，并先收集 Text 数组再通过 $.from 包装。模板混排 abcd、嵌套模板 abc、普通元素/模板混合集合及原有重叠/倒序根、剪枝和去重测试均通过，相关顺序问题已修复。
 
-按用户要求，空模板和仅含空 button 的模板已加入两个正式复现测试，断言写入应进入 template.content、可由 getter 读回并保留原子节点；两项当前仍失败。$.from 最低类型由 Element 扩为 Node 后，新增运行时与严格消费者类型用例覆盖 Text、Comment、Document、DocumentFragment、ShadowRoot、Attr、DocumentType、处理指令和 CDATA，以及跨 iframe、收养节点、NodeList/ArrayLike、混合分组、类型推断和伪造 Node 拒绝。全量结果为 338 项通过、仅上述两个已知复现失败，完整构建及 Bundler / NodeNext 消费者检查通过。本次仅添加/调整测试和审查记录，未修改产品源码。
+验证：空模板和仅含空 button 的模板这两个正式复现测试已通过，并增加清空/重复写入、iframe/独立文档、子元素/注释/事件数据保留以及非 HTML 同名元素测试。此前 $.from 的各类 Node、跨 iframe、NodeList/ArrayLike、混合分组和类型推断用例继续通过。全量 343 项测试、完整构建及严格 Bundler / NodeNext 消费者检查均通过。
 
 ## 验证与范围
 

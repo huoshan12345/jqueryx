@@ -58,6 +58,57 @@ test.each(['', '<button></button>'])('textContent inserts into template.content 
   expect(nodes.textContent()).toBe('new');
   expect(template.childNodes).toHaveLength(0);
   expect([...template.content.childNodes].slice(1)).toEqual(originalChildren);
+  const firstText = template.content.firstChild;
+  nodes.textContent('');
+  expect(nodes.textContent()).toBe('');
+  nodes.textContent('updated');
+  expect(nodes.textContent()).toBe('updated');
+  expect(template.content.firstChild).toBe(firstText);
+  expect([...template.content.childNodes].slice(1)).toEqual(originalChildren);
+});
+
+test.each(['independent document', 'iframe document'])('textContent inserts into an empty template from %s', mode => {
+  const frame = mode === 'iframe document' ? document.createElement('iframe') : undefined;
+  if (frame) {
+    document.body.append(frame);
+  }
+  try {
+    const owner = frame?.contentDocument ?? document.implementation.createHTMLDocument();
+    const template = owner.createElement('template');
+    template.innerHTML = '<button></button><!--keep-->';
+    const children = [...template.content.childNodes];
+    const button = template.content.querySelector('button')!;
+    const clicked = vi.fn();
+    $(button).data('value', 42).on('click', clicked);
+    if (frame) {
+      expect(template instanceof HTMLTemplateElement).toBe(false);
+    }
+
+    $(template).textContent('new');
+
+    expect(template.content.textContent).toBe('new');
+    expect($(template).textContent()).toBe('new');
+    expect(template.content.firstChild?.ownerDocument).toBe(template.content.ownerDocument);
+    expect([...template.content.childNodes].slice(1)).toEqual(children);
+    expect(template.childNodes).toHaveLength(0);
+    expect($(button).data('value')).toBe(42);
+    $(button).triggerHandler('click');
+    expect(clicked).toHaveBeenCalledOnce();
+  } finally {
+    frame?.remove();
+  }
+});
+
+test('textContent treats a non-HTML element named template as an ordinary element', () => {
+  const element = document.createElementNS('http://www.w3.org/2000/svg', 'template');
+  const child = document.createElementNS('http://www.w3.org/2000/svg', 'g');
+  element.append(child);
+
+  $(element).textContent('new');
+
+  expect($(element).textContent()).toBe('new');
+  expect(element.firstChild?.nodeValue).toBe('new');
+  expect(element.lastChild).toBe(child);
 });
 
 test('textContent preserves the position of template content within surrounding text', () => {
