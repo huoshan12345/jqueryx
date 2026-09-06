@@ -1,3 +1,25 @@
+test('entries creates independent one-shot iterators with zero-based indexes', () => {
+  const nodes = $('<i></i><b></b>');
+  const first = nodes.entries();
+  const second = nodes.entries();
+  expect(first.next().value).toEqual([0, nodes[0]]);
+  expect([...first]).toEqual([[1, nodes[1]]]);
+  expect([...first]).toEqual([]);
+  expect([...second]).toEqual([[0, nodes[0]], [1, nodes[1]]]);
+  expect([...$().entries()]).toEqual([]);
+});
+
+test('asEnumerable and enumerate read collection membership at enumeration time', () => {
+  const nodes = $('<i>');
+  const raw = nodes.asEnumerable();
+  const wrapped = nodes.enumerate();
+  const replacement = document.createElement('b');
+  nodes[0] = replacement;
+  expect(raw.toArray()).toEqual([replacement]);
+  expect(wrapped.select(node => node[0]).toArray()).toEqual([replacement]);
+  expect($().enumerate().toArray()).toEqual([]);
+});
+
 test('enumeration preserves Text and SVG node identities', () => {
   const text = document.createTextNode('text');
   const svg = document.createElementNS('http://www.w3.org/2000/svg', 'svg');

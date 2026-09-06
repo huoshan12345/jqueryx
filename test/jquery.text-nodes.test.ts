@@ -1,3 +1,14 @@
+test('textNodes returns no results for empty roots or trees containing only comments', () => {
+  expect($().textNodes()).toHaveLength(0);
+  expect($('<div><!--comment--><span></span></div>').textNodes()).toHaveLength(0);
+});
+
+test('textNodes propagates invalid traversal and exclusion selectors', () => {
+  const root = $('<div>text</div>');
+  expect(() => root.textNodes('[')).toThrow();
+  expect(() => root.textNodes(undefined, ['['])).toThrow();
+});
+
 test('textNodes accepts immutable exclusion selectors', () => {
   const excluded = Object.freeze(['button']);
   const root = $('<div>plain<a>link</a><button>button</button></div>');

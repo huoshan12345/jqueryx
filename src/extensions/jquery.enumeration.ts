@@ -2,8 +2,11 @@ import { Enumerable } from 'linqx';
 
 declare global {
   interface JQuery<TElement = HTMLElement> {
+    /** Creates a fresh one-shot iterator of [zeroBasedIndex, element] pairs in collection order. */
     entries(): IterableIterator<[number, TElement]>;
+    /** Returns a lazy, repeatable LINQ sequence over this collection; does not snapshot or rerun its selector. */
     asEnumerable(): Enumerable.IEnumerable<TElement>;
+    /** Like asEnumerable, wrapping each member in its own JQuery collection on each enumeration. */
     enumerate(): Enumerable.IEnumerable<JQuery<TElement>>;
   }
 }

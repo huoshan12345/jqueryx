@@ -1,15 +1,24 @@
 declare global {
   interface JQuery<TElement = HTMLElement> {
+    /**
+     * Finds a matching ancestor for each element and combines results with jQuery.add.
+     * @param selector A jQuery selector to match against ancestors.
+     * @param outermost Selects the farthest match instead of the nearest; defaults to false.
+     * @param includeSelf Considers each selected element before its parents; defaults to false.
+     * @returns Matching ancestors, deduplicated and sorted by jQuery; empty when none match.
+     */
     ancestor(
       this: this & JQuery<Element>,
       selector: string,
       outermost?: boolean,
       includeSelf?: boolean,
     ): JQuery<Element>;
+    /** Finds descendants; if empty and checkIframesIfEmpty (default true), searches direct iframe documents in this subtree. */
     search(this: this & JQuery<Node>, selector: string, checkIframesIfEmpty?: boolean): JQuery;
   }
 
   interface JQueryStatic {
+    /** Queries $(selector); if empty and checkIframesIfEmpty (default true), searches direct iframe documents. Not recursive. */
     search(selector: string, checkIframesIfEmpty?: boolean): JQuery;
   }
 }

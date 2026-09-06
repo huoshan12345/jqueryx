@@ -1,5 +1,105 @@
 import type { EventHandlerOptions } from '@/types/lib.js';
 import type { Awaitable } from 'builtinx';
+import { ClickOptions } from '@/index.js';
+
+test('ClickOptions supplies independent defaults and accepts explicit overrides', () => {
+  const defaults = new ClickOptions();
+  expect(defaults.preventDefault).toBe(true);
+  expect(defaults.stopPropagation).toBe(false);
+  expect(defaults.stopImmediatePropagation).toBe(false);
+  expect(defaults.disableWhileProcessing).toBe(true);
+  expect(defaults.onError).toBeUndefined();
+  const onError = vi.fn();
+  const input = {
+    preventDefault: false,
+    stopPropagation: true,
+    stopImmediatePropagation: true,
+    disableWhileProcessing: false,
+    onError,
+  };
+  const custom = new ClickOptions(input);
+  expect(custom).toMatchObject(input);
+  custom.preventDefault = true;
+  expect(input.preventDefault).toBe(false);
+  expect(new ClickOptions()).toEqual(defaults);
+});
+
+test('triggerClick performs a native click on every enabled control and is chainable', () => {
+  const nodes = $('<input type="checkbox"><input type="checkbox"><input type="checkbox" disabled>');
+  const events: Event[] = [];
+  for (const node of nodes) {
+    node.addEventListener('click', event => events.push(event));
+  }
+  expect(nodes.triggerClick()).toBe(nodes);
+  expect(nodes.toArray().map(node => $(node).prop('checked'))).toEqual([true, true, false]);
+  expect(events.map(event => event.target)).toEqual([nodes[0], nodes[1]]);
+  expect($().triggerClick()).toHaveLength(0);
+});
+
+test('triggerChange invokes jQuery handlers on every element and bubbles', () => {
+  const root = $('<div><input><input></div>');
+  const nodes = root.find('input');
+  const own = vi.fn();
+  const parent = vi.fn();
+  nodes.on('change', own);
+  root.on('change', parent);
+  expect(nodes.triggerChange()).toBe(nodes);
+  expect(own.mock.calls.map(([event]) => event.target)).toEqual(nodes.toArray());
+  expect(parent).toHaveBeenCalledTimes(2);
+  expect($().triggerChange()).toHaveLength(0);
+});
+
+test('dispatchEvent delivers the supplied native event to every target including plain EventTargets', () => {
+  const targets = [new EventTarget(), new EventTarget()];
+  const nodes = $<EventTarget>();
+  $.merge(nodes, targets);
+  const seen: Event[] = [];
+  const origins: EventTarget[] = [];
+  for (const target of targets) {
+    target.addEventListener('custom', event => {
+      seen.push(event);
+      origins.push(event.target!);
+      event.preventDefault();
+    });
+  }
+  const event = new Event('custom', { cancelable: true });
+  expect(nodes.dispatchEvent(event)).toBe(nodes);
+  expect(seen).toEqual([event, event]);
+  expect(origins).toEqual(targets);
+  expect(event.defaultPrevented).toBe(true);
+  expect($().dispatchEvent(new Event('custom'))).toHaveLength(0);
+});
+
+test('dispatchEvent honors native bubbling for DOM targets', () => {
+  const root = $('<div><button></button></div>');
+  const parent = vi.fn();
+  root[0].addEventListener('custom', parent);
+  root.find('button').dispatchEvent(new Event('custom', { bubbles: false }));
+  expect(parent).not.toHaveBeenCalled();
+  root.find('button').dispatchEvent(new Event('custom', { bubbles: true }));
+  expect(parent).toHaveBeenCalledOnce();
+});
+
+test('event bindings on empty collections return the same collection without invoking handlers', () => {
+  const nodes = $();
+  const handler = vi.fn();
+  expect(nodes.onClick(handler).onKeyDown(handler).onEnterDown(handler).onClickGotoHref()).toBe(nodes);
+  nodes.triggerClick().triggerChange();
+  expect(handler).not.toHaveBeenCalled();
+});
+
+test('onClickGotoHref preserves the default action while suppressing ancestor bubbling', () => {
+  const root = $('<div><a href="#target">link</a></div>');
+  const anchor = root.find('a');
+  const parent = vi.fn();
+  root[0].addEventListener('click', parent);
+  anchor.onClickGotoHref();
+  // A non-MouseEvent avoids jsdom navigation, while still testing click propagation.
+  const event = new Event('click', { bubbles: true, cancelable: true });
+  expect(anchor[0].dispatchEvent(event)).toBe(true);
+  expect(event.defaultPrevented).toBe(false);
+  expect(parent).not.toHaveBeenCalled();
+});
 
 function deferred() {
   let resolve!: () => void;

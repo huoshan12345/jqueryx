@@ -2,14 +2,19 @@ import type { Nullishable, OneOrMany } from 'builtinx';
 
 declare global {
   interface JQueryStatic {
+    /** Returns an empty collection for null or undefined. */
     from(value: null | undefined): JQuery;
+    /** Returns a collection from the shared jQuery instance unchanged, including its identity. */
     from<T extends Node>(collection: JQuery<T>): JQuery<T>;
+    /** Wraps Nodes or flattens an array-like group of Nodes/collections using jQuery.add ordering and deduplication. */
     from<T extends Node = HTMLElement>(elements: Nullishable<OneOrMany<T | JQuery<T>>>): JQuery<T>;
+    /** Resolves selectors/HTML with jQuery, flattening array-like groups. Unsupported inputs or members throw TypeError. */
     from<T extends Node = HTMLElement>(selector: Nullishable<OneOrMany<string | JQuery<T>>>): JQuery<T>;
     /** Recognizes collections from the shared jQuery instance; does not validate their contents. */
     isJQuery(value: unknown): value is JQuery<unknown>;
     /** Recognizes native Elements across realms, including documents without a window. */
     isElement(value: unknown): value is Element;
+    /** Recognizes native Nodes across realms, including Text, Comment, Document and DocumentFragment. */
     isNode(value: unknown): value is Node;
   }
 }

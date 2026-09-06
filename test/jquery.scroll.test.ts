@@ -1,3 +1,8 @@
+test('scrollToNode rejects unsupported inputs and invalid selectors', () => {
+  expect(() => $.scrollToNode({} as Element)).toThrow(TypeError);
+  expect(() => $.scrollToNode('[')).toThrow();
+});
+
 function scrollable(element: Element) {
   const scrollIntoView = vi.fn();
   Object.defineProperty(element, 'scrollIntoView', { configurable: true, value: scrollIntoView });

@@ -39,6 +39,16 @@ beforeAll(() => {
   writeFileSync(join(packageDirectory, 'package.json'), JSON.stringify(manifest, null, 2));
   cpSync(join(fixtures, 'consumer'), consumerDirectory, { recursive: true });
 
+  // Compile the actual documented examples against the published declarations.
+  const readme = readFileSync(join(root, 'README.md'), 'utf8');
+  const examples = [...readme.matchAll(/^```ts\r?\n([\s\S]*?)^```/gm)];
+  expect(examples.length).toBeGreaterThan(0);
+  const exampleFiles = examples.map((example, index) => {
+    const file = `readme-example-${index + 1}.ts`;
+    writeFileSync(join(consumerDirectory, file), `import 'jqueryx';\n${example[1]}\nexport {};\n`);
+    return file;
+  });
+
   // Allows validating an unpublished peer build without changing the repository's dependency ranges.
   const builtinxPackage = process.env['JQUERYX_BUILTINX_PACKAGE_DIR'];
   if (builtinxPackage) {
@@ -69,7 +79,7 @@ beforeAll(() => {
       // jQuery globals must arrive through the package, not ambient @types discovery.
       types: [],
     },
-    files: ['types.ts'],
+    files: ['types.ts', ...exampleFiles],
   };
   writeFileSync(join(consumerDirectory, 'tsconfig.json'), JSON.stringify(consumerConfig, null, 2));
   writeFileSync(join(consumerDirectory, 'tsconfig.nodenext.json'), JSON.stringify({
@@ -118,7 +128,7 @@ test.each(['host-first', 'package-first'])('the built entry shares all peer runt
 });
 
 test.each(['tsconfig.json', 'tsconfig.nodenext.json'])(
-  'consumers get global factories and base types using %s', config => {
+  'consumers and README examples compile against published types using %s', config => {
     runNode(compiler, ['-p', join(consumerDirectory, config)]);
   },
 );

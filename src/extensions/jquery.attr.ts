@@ -2,17 +2,29 @@ import type { URLLike } from 'builtinx';
 
 declare global {
   interface JQuery<TElement = HTMLElement> {
+    /** Reads the first element's title attribute; undefined for a missing attribute or empty collection. */
     title(this: this & JQuery<Element>): string | undefined;
+    /** Sets every title attribute, including empty strings, and returns this. */
     title(this: this & JQuery<Element>, value: string): this;
+    /** Reads the first title attribute; throws Error if missing or empty. Does not trim whitespace. */
     requiredTitle(this: this & JQuery<Element>): string;
+    /** Sets target="_blank" on every element; onlyUpdate defaults to true and skips already matching attributes. */
     targetBlank(this: this & JQuery<Element>, onlyUpdate?: boolean): this;
+    /** Reads the first raw href attribute; throws Error if missing or empty. */
     requiredHref(this: this & JQuery<Element>): string;
+    /** Reads the first raw href attribute without resolving relative URLs; undefined when missing or empty collection. */
     href(this: this & JQuery<Element>): string | undefined;
+    /** Sets every href attribute to value.toString() and returns this. An empty string is retained. */
     href(this: this & JQuery<Element>, value: URLLike): this;
+    /** Sets every href to "javascript:;" and returns this. */
     voidHref(this: this & JQuery<Element>): this;
+    /** Tests the first raw href for a nonempty value not starting with lowercase "javascript:"; not URL validation. */
     hasUrlHref(this: this & JQuery<Element>): boolean;
+    /** Sets the live disabled property to true for every selected element and returns this. */
     disable(this: this & JQuery<Element>): this;
+    /** Sets the live disabled property to false for every selected element and returns this. */
     enable(this: this & JQuery<Element>): this;
+    /** Returns whether any member matches jQuery :checked, including selected options; false when empty. */
     checked(): boolean;
   }
 }

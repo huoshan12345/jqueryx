@@ -8,14 +8,18 @@ declare global {
      * HTML template roots store the inserted text in their content fragment.
      */
     textContent(this: this & JQuery<Node>, value: string): this;
+    /** Concatenates direct child Text content across roots; Text roots contribute their own value. Empty returns "". */
     ownText(this: this & JQuery<Node>): string;
     /**
      * Sets direct text on Element and DocumentFragment roots, preserving other children.
      * Updates Text roots directly and skips all other node types.
      */
     ownText(this: this & JQuery<Node>, value: string): this;
+    /** Removes sibling BRs and newline-only Text nodes immediately following descendant BRs; returns this. */
     collapseBrs(this: this & JQuery<Element>): this;
+    /** True when every root is Text containing only whitespace and at least one newline; true when empty. */
     isNewLineTextNode(this: this & JQuery<Node>): boolean;
+    /** Removes each root's leading BRs and newline-only Text nodes, stopping at any other child; returns this. */
     trimLeadingBrs(this: this & JQuery<Element>): this;
   }
 }

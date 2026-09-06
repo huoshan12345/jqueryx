@@ -2,11 +2,17 @@ type StyledElement = Element & ElementCSSInlineStyle;
 
 declare global {
   interface JQuery<TElement = HTMLElement> {
+    /** Sets cursor: pointer on every element and returns this. */
     pointer(this: this & JQuery<StyledElement>): this;
+    /** Sets text-decoration: underline on every element and returns this. */
     underline(this: this & JQuery<StyledElement>): this;
+    /** Sets display: flex on every element and returns this. */
     flex(this: this & JQuery<StyledElement>): this;
+    /** Sets flex-wrap on every element (default "wrap") and returns this. */
     flexWrap(this: this & JQuery<StyledElement>, value?: string): this;
+    /** Sets display: inline-block on every element and returns this. */
     inlineBlock(this: this & JQuery<StyledElement>): this;
+    /** Sets display: inline-flex on every element and returns this. */
     inlineFlex(this: this & JQuery<StyledElement>): this;
     /** Sets a CSS property with !important. Use a CSS property name and an explicit CSS value, including units. */
     cssImportant(this: this & JQuery<StyledElement>, propertyName: string, value: string): this;
@@ -14,8 +20,11 @@ declare global {
     cssIfNotEmpty(this: this & JQuery<StyledElement>, propertyName: string, value?: string): this;
     /** Adds classes unless the input is undefined or empty. Does not catch errors. */
     addClassIfNotEmpty(this: this & JQuery<Element>, classNames?: string | string[]): this;
+    /** Sets padding on every element via jQuery.css; numeric values use px. Returns this. */
     padding(this: this & JQuery<StyledElement>, value: string | number): this;
+    /** Sets every color; important defaults to false. An empty string removes the inline color. Returns this. */
     color(this: this & JQuery<StyledElement>, value: string, important?: boolean): this;
+    /** Reads the first computed color via jQuery.css; undefined for an empty collection. */
     color(this: this & JQuery<StyledElement>): string | undefined;
     /**
      * Converts the first element's computed rgb()/rgba() color to #rrggbb or
@@ -27,7 +36,9 @@ declare global {
       this: this & JQuery<StyledElement>,
       uppercase?: boolean,
     ): string | undefined;
+    /** Returns whether any element matches jQuery :visible (has a layout box); false for an empty collection. */
     visible(this: this & JQuery<Element>): boolean;
+    /** Shows or hides every element via jQuery.show/hide and returns this; does not override hidden ancestors. */
     visible(this: this & JQuery<Element>, value: boolean): this;
   }
 }

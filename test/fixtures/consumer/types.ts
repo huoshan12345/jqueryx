@@ -4,6 +4,24 @@ import type { Enumerable } from 'linqx';
 import 'linqx/extensions';
 import type { MutationObserverOptionsInit } from 'builtinx';
 import type { WaitForNodesOptions, RefineUrlsOptions } from 'jqueryx';
+import type { JQueryNode, JQueryTextInfo, JQueryMutationCallback, JQueryObservation } from 'jqueryx';
+
+const textInfo: JQueryTextInfo = {
+  text: 42,
+  color: 'red',
+  classNames: ['message'],
+  action: nodes => { nodes.addClass('ready'); },
+};
+const htmlNodeAlias: JQueryNode = $(document.createTextNode('text'));
+const mutationCallback: JQueryMutationCallback<HTMLButtonElement> = (records, observer, nodes) => {
+  const button: HTMLButtonElement = nodes[0];
+  void [records, observer, button];
+};
+const observation: JQueryObservation = { disconnect() {} };
+const stopped: void = observation.disconnect();
+// @ts-expect-error Presentation text must be a string or number.
+const invalidTextInfo: JQueryTextInfo = { text: false };
+void [textInfo, htmlNodeAlias, mutationCallback, stopped, invalidTextInfo];
 
 const buttons: JQuery<HTMLButtonElement> = $('button');
 const sameButtons: JQuery<HTMLButtonElement> = jQuery('button');

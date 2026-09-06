@@ -16,6 +16,12 @@ declare global {
       handler: (target: EventTarget, originalEvent?: MouseEvent) => Awaitable<unknown>,
       options?: Partial<ClickOptions>,
     ): this;
+    /**
+     * Restores native anchor navigation by removing jQuery click handlers and inline onclick attributes,
+     * and stopping click propagation during capture at each anchor. Non-anchors are skipped.
+     * openNew=true sets target="_blank"; otherwise existing targets remain. Returns this.
+     * Does not remove arbitrary native listeners or undo earlier capture-phase cancellation.
+     */
     onClickGotoHref(this: this & JQuery<Element>, openNew?: boolean): this;
     /**
      * Stops propagation immediately, preserves default behavior, and reports handler errors.
@@ -32,8 +38,11 @@ declare global {
       handler: (target: EventTarget) => Awaitable<unknown>,
       options?: EventHandlerOptions,
     ): this;
+    /** Calls each element's native click(), including its default action, and returns this. Disabled controls obey native rules. */
     triggerClick(this: this & JQuery<HTMLElement>): this;
+    /** Triggers a jQuery change event on every member, including jQuery bubbling, and returns this. */
     triggerChange(): this;
+    /** Dispatches the same native Event sequentially to every target and returns this, ignoring cancellation return values. */
     dispatchEvent(this: this & JQuery<EventTarget>, event: Event): this;
   }
 }

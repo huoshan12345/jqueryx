@@ -2,6 +2,54 @@ import { foreignDocument } from './helpers/foreignDocument.js';
 
 afterEach(() => document.body.replaceChildren());
 
+test('ownText concatenates only direct text across roots and returns empty for missing text', () => {
+  const nodes = $('<div>a<b>nested</b>c</div><div>d</div>');
+  expect(nodes.ownText()).toBe('acd');
+  expect($(document.createTextNode('raw')).ownText()).toBe('raw');
+  expect($('<div><b>nested</b></div>').ownText()).toBe('');
+  expect($().ownText()).toBe('');
+  expect($().ownText('new')).toHaveLength(0);
+});
+
+test.each([
+  ['\n', true], ['\r', true], [' \n\t\r\n ', true],
+  ['', false], [' ', false], ['\t', false], ['text\n', false],
+] as const)('isNewLineTextNode recognizes newline-only Text content %j', (value, expected) => {
+  expect($(document.createTextNode(value)).isNewLineTextNode()).toBe(expected);
+});
+
+test('isNewLineTextNode requires all members to match and treats empty collections as true', () => {
+  const newline = document.createTextNode('\n');
+  expect($.from<Node>([newline, document.createTextNode('\r')]).isNewLineTextNode()).toBe(true);
+  expect($.from<Node>([newline, document.createTextNode('text')]).isNewLineTextNode()).toBe(false);
+  expect($(document.createComment('\n')).isNewLineTextNode()).toBe(false);
+  expect($('<div>\n</div>').isNewLineTextNode()).toBe(false);
+  expect($().isNewLineTextNode()).toBe(true);
+});
+
+test('collapseBrs visits each root and nested breaks while preserving unrelated content', () => {
+  const nodes = $('<div>a<br>\n<br><span>x<br><br>y</span><br> <br></div><div><br><br>b</div>');
+  const span = nodes.find('span')[0];
+  expect(nodes.collapseBrs()).toBe(nodes);
+  expect(nodes.eq(0).html()).toBe('a<br><span>x<br>y</span><br> <br>');
+  expect(nodes.eq(1).html()).toBe('<br>b');
+  expect(nodes.find('span')[0]).toBe(span);
+  expect(nodes.collapseBrs().eq(1).html()).toBe('<br>b');
+  expect($().collapseBrs()).toHaveLength(0);
+});
+
+test('trimLeadingBrs only removes leading breaks/newlines and stops at comments or ordinary whitespace', () => {
+  const nodes = $('<div>\n<br>\r<br><b>keep</b><br></div><div><br>\n</div>');
+  const child = nodes.find('b')[0];
+  expect(nodes.trimLeadingBrs()).toBe(nodes);
+  expect(nodes.eq(0).html()).toBe('<b>keep</b><br>');
+  expect(nodes[0].firstChild).toBe(child);
+  expect(nodes.eq(1).html()).toBe('');
+  expect($('<div><!--keep--><br></div>').trimLeadingBrs().html()).toBe('<!--keep--><br>');
+  expect($('<div> <br></div>').trimLeadingBrs().html()).toBe(' <br>');
+  expect($().trimLeadingBrs()).toHaveLength(0);
+});
+
 test('textContent reads nested text in document order', () => {
   const nodes = $('<div>a<b>b<i>c</i></b>d</div><div>e</div>');
   expect(nodes.textContent()).toBe('abcde');
