@@ -8,7 +8,8 @@ declare global {
     flexWrap(this: this & JQuery<StyledElement>, value?: string): this;
     inlineBlock(this: this & JQuery<StyledElement>): this;
     inlineFlex(this: this & JQuery<StyledElement>): this;
-    cssImp(this: this & JQuery<StyledElement>, propertyName: string, value: string | number): this;
+    /** Sets a CSS property with !important. Use a CSS property name and an explicit CSS value, including units. */
+    cssImportant(this: this & JQuery<StyledElement>, propertyName: string, value: string): this;
     tryCss(this: this & JQuery<StyledElement>, propertyName: string, value?: string): this;
     tryAddClass(this: this & JQuery<Element>, className?: string | string[]): this;
     padding(this: this & JQuery<StyledElement>, value: string | number): this;
@@ -51,12 +52,15 @@ $.fn.inlineBlock = function <T extends JQuery<StyledElement>>(this: T) {
   return this.css("display", 'inline-block');
 };
 
-$.fn.cssImp = function <T extends JQuery<StyledElement>>(
+$.fn.cssImportant = function <T extends JQuery<StyledElement>>(
   this: T,
   propertyName: string,
-  value: string | number,
+  value: string,
 ) {
-  return this.each((i, e) => e.style.setProperty(propertyName, value.toString(), 'important'));
+  if (typeof value !== 'string') {
+    throw new TypeError('cssImportant requires a CSS string value with explicit units where needed.');
+  }
+  return this.each((i, e) => e.style.setProperty(propertyName, value, 'important'));
 };
 
 $.fn.tryCss = function <T extends JQuery<StyledElement>>(this: T, propertyName: string, value?: string) {
@@ -88,7 +92,7 @@ function color<T extends JQuery<StyledElement>>(
     return this.css('color');
   } else {
     if (important) {
-      return this.cssImp('color', value);
+      return this.cssImportant('color', value);
     } else {
       return this.css('color', value);
     }

@@ -88,6 +88,18 @@ try {
   imageRoot.find('img').refineUrls([], new URL('https://example.com'));
   assert.equal(imageRoot.find('a').length, 0);
 
+  button.cssImportant('padding', '20px');
+  assert.equal(button[0].style.getPropertyValue('padding'), '20px');
+  assert.equal(button[0].style.getPropertyPriority('padding'), 'important');
+  const replacementRoot = $('<div><i>a</i><i>b</i></div>');
+  const replacements = replacementRoot.find('i').replaceBy((node, index) => {
+    assert.equal(node.length, 1);
+    return $('<b>').text(`${index}:${node.text()}`);
+  });
+  assert.deepEqual(replacements.toArray(), replacementRoot.children().toArray());
+  assert.equal(replacementRoot.html(), '<b>0:a</b><b>1:b</b>');
+  assert.equal($().hasUrlHref(), false);
+
   const independentButton = document.implementation.createHTMLDocument().createElement('button');
   assert.ok($.isElement(independentButton));
   assert.equal($.from(independentButton)[0], independentButton);
@@ -97,6 +109,12 @@ try {
     const foreignButton = frame.contentDocument!.createElement('button');
     assert.ok($.isElement(foreignButton));
     assert.deepEqual($.from([foreignButton, independentButton]).toArray(), [foreignButton, independentButton]);
+    foreignButton.innerHTML = 'a<b>b</b>c';
+    assert.equal($(foreignButton).ownText(), 'ac');
+    foreignButton.innerHTML = '<br><br>text<br><br>';
+    $(foreignButton).trimLeadingBrs().collapseBrs();
+    assert.equal(foreignButton.innerHTML, 'text<br>');
+    assert.equal($(frame.contentDocument!.createTextNode('\n ')).isNewLineTextNode(), true);
   } finally {
     frame.remove();
   }

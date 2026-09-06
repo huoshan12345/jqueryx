@@ -3,7 +3,8 @@ import type { Nullishable, OneOrMany } from 'builtinx';
 declare global {
   interface JQueryStatic {
     search(selector: string, checkIframesIfEmpty?: boolean): JQuery;
-    scrollToNode(element: string | Element | JQuery<Element>): void;
+    /** Scrolls the first match into view using its native scrolling containers. Empty matches do nothing. */
+    scrollToNode(element: string | Element | JQuery<Element>, options?: ScrollIntoViewOptions): void;
     from(selector: Nullishable<OneOrMany<string | JQuery>>): JQuery;
     from<T extends Element>(element: Nullishable<OneOrMany<T>>): JQuery<T>;
     isJQuery<T extends Element = HTMLElement>(value: unknown): value is JQuery<T>;
@@ -41,32 +42,21 @@ $.search = function (selector: string, checkIframesIfEmpty: boolean = true): JQu
   return result;
 };
 
-$.scrollToNode = function (element: string | Element | JQuery<Element>) {
-  if (!element)
-    return;
-
-  let e: JQuery<Element>;
-  if (element instanceof Element) {
-    e = $(element);
+$.scrollToNode = function (element: string | Element | JQuery<Element>, options?: ScrollIntoViewOptions) {
+  let node: Element | undefined;
+  if ($.isElement(element)) {
+    node = element;
   } else if (typeof element === "string") {
-    e = $(element);
+    node = $(element).get(0);
   } else if (element instanceof jQuery) {
-    e = element;
+    node = element.get(0);
   } else {
-    throw "Not an element";
+    throw new TypeError('Expected an element, selector, or JQuery collection.');
   }
-
-  const node = e.get(0);
   if (!node) {
-    console.log(e + '不存在');
     return;
   }
-
-  // const rect = node.getOffset();
-  const rect = node.getBoundingClientRect();
-  console.log(rect);
-  scroll(0, rect.top);
-  // node.scrollIntoView(true);
+  node.scrollIntoView({ block: 'start', inline: 'nearest', ...options });
 };
 
 function from<T extends Element>(element: Nullishable<OneOrMany<T>>): JQuery<T>;

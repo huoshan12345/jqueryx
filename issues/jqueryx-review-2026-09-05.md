@@ -244,7 +244,7 @@ childNodes 是实时列表，在 for-of 中删除当前 child 会改变后续索
 
 验证：test/jquery.static.test.ts 的 22 项测试覆盖当前文档、独立 HTML 文档、iframe 及其独立文档、XML、跨文档 adoption、已移除 iframe、SVG、HTMLCollection／NodeList、混合集合、非元素和伪装对象，以及原有 selector／JQuery／空输入行为。发布包消费者覆盖独立文档和 iframe 数组输入，声明测试检查元素子类型保留。运行时验证使用 jsdom，未声称执行真实浏览器跨源访问测试。全部 146 项测试、严格声明检查及完整 pnpm build 通过。
 
-### 16. [P2] DOM 原型包装方法不能处理本包 search 返回的 iframe 节点
+### 16. [已修复 2026-09-06] [P2] DOM 原型包装方法不能处理本包 search 返回的 iframe 节点
 
 位置：[jquery.ts:319](../src/extensions/jquery.ts#L319)、[jquery.ts:364](../src/extensions/jquery.ts#L364)、[jquery.ts:462](../src/extensions/jquery.ts#L462)。
 
@@ -254,7 +254,11 @@ search 默认会检索 iframe，但 ownText getter、collapseBrs、trimLeadingBr
 
 建议使用独立 helper 或一致的跨 realm 调用实现，并检查依赖方法内部是否仍调用节点自身的扩展；仅给最外层方法加 call/apply 未必足够。
 
-### 17. [P2] scrollToNode 将视口坐标传给文档滚动 API
+复核：用户已将四处调用改为 BuiltinX.Node／BuiltinX.Element 静态方法。检查已安装 builtinx 0.3.1 的实现，内部依赖也调用独立函数，不再要求 iframe 节点具有当前窗口的原型扩展。保留用户实现，并将 builtinx peerDependencies 从 ^0.3.0 提高至 ^0.3.1，与所用静态 API 的版本一致。
+
+验证：test/jquery.dom.test.ts 的 4 项测试在 iframe 原型没有对应扩展方法的条件下，覆盖 search 结果的 ownText 获取／设置、换行 Text 判断、连续 br 合并和开头 br 清理。发布包消费者也验证这些跨 realm 静态调用。
+
+### 17. [已修复 2026-09-06] [P2] scrollToNode 将视口坐标传给文档滚动 API
 
 位置：[jquery.static.ts:62](../src/extensions/jquery.static.ts#L62)。
 
@@ -264,7 +268,11 @@ getBoundingClientRect().top 相对视口，scroll 的 y 是文档坐标。已滚
 
 建议明确目标滚动容器，优先使用元素的 scrollIntoView，或以元素所属窗口的滚动偏移计算绝对位置。
 
-### 18. [P2] cssImp 接受 number 却把有单位属性写成无效 CSS
+修复：使用目标元素的 scrollIntoView，默认 block: 'start'、inline: 'nearest'，可传入原生 ScrollIntoViewOptions。selector 和 JQuery 集合只处理第一个匹配元素；空匹配直接返回。元素输入使用 isElement 识别，支持 iframe 和独立文档，不再计算坐标或调用全局 scroll。
+
+验证：test/jquery.scroll.test.ts 的 5 项测试覆盖原生方法委托、选项传递、首项选择、iframe／独立文档元素及空匹配；消费者编译测试覆盖新增参数。jsdom 中模拟了 scrollIntoView，未执行真实浏览器的布局与滚动效果验证。
+
+### 18. [已修复 2026-09-06] [P2] cssImp 接受 number 却把有单位属性写成无效 CSS
 
 位置：[jquery.css.ts:43](../src/extensions/jquery.css.ts#L43)。
 
@@ -274,7 +282,11 @@ getBoundingClientRect().top 相对视口，scroll 的 y 是文档坐标。已滚
 
 建议只接受明确带单位的 string，或按照属性执行与 css 一致的数值归一化。名称 `cssImportant` 也比缩写 `cssImp` 清楚。
 
-### 19. [P2] hasUrlHref 不符合公开的 boolean 返回契约
+修复：方法更名为 cssImportant，移除旧名称，value 仅接受 string。长度值应写为 cssImportant('padding', '20px')；无单位属性可以传 '0.5'。运行时拒绝 number，避免静默设置失败。color(value, true) 已同步调用新名称。
+
+验证：test/jquery.css.test.ts 的 5 项测试覆盖长度、无单位值、自定义属性、important 优先级、多元素、清除属性、空集合、SVG 和非法数值。消费者严格编译测试确认新名称保留链式元素类型，同时拒绝旧名称与 number；发布包运行时验证显式单位及优先级。
+
+### 19. [已修复 2026-09-06] [P2] hasUrlHref 不符合公开的 boolean 返回契约
 
 位置：[jquery.attr.ts:91](../src/extensions/jquery.attr.ts#L91)。
 
@@ -284,7 +296,11 @@ getBoundingClientRect().top 相对视口，scroll 的 y 是文档坐标。已滚
 
 建议显式返回 boolean，并说明“URL href”究竟仅排除 javascript，还是要求可导航协议；不要让名称暗示实现没有提供的验证能力。
 
-### 20. [P2] replaceBy 返回的集合遗漏实际插入的克隆节点
+复核：用户已改为 !!href && !href.startsWith('javascript:')，所有分支均返回 boolean，保留该实现。当前行为仍是判断 href 非空且不以小写 javascript: 开头，不应将其作为协议安全校验器。
+
+验证：test/jquery.attr.test.ts 的 7 项用例对空集合、普通元素、无 href 的 anchor、javascript:、HTTPS、相对链接和片段链接进行严格布尔断言；发布包消费者也确认空集合返回 false。
+
+### 20. [已修复 2026-09-06] [P2] replaceBy 返回的集合遗漏实际插入的克隆节点
 
 位置：[jquery.ts:275](../src/extensions/jquery.ts#L275)。
 
@@ -293,6 +309,12 @@ getBoundingClientRect().top 相对视口，scroll 的 y 是文档坐标。已滚
 验证：两个 div 调用 replaceBy(() => $('<span>new</span>')) 后 DOM 中有两个 span，返回集合长度却是 1。
 
 建议先确定回调按整个集合还是逐元素执行；保留多目标行为时，应返回所有实际插入节点。若只支持单目标，应把限制表达清楚并校验。
+
+修复：按用户确认采用逐元素语义，回调接收单元素 JQuery 和原集合索引。返回集合按回调顺序汇总所有替换节点，可继续统一链式操作。返回当前元素表示保留，空集合表示删除；重复使用替换节点或返回另一个源节点时克隆，并保留 jQuery 事件和数据。无父节点的输入返回回调产生的节点。后续回调抛错时保留前面已经完成的替换，不提供事务回滚。
+
+验证：test/jquery.replace.test.ts 的 11 项测试覆盖逐元素回调／索引、多个替换节点顺序、共享节点克隆及事件数据、保留自身、空返回删除、空输入、原节点与新兄弟共同返回、子节点替换父节点、游离节点、其他源节点和回调异常。消费者编译测试验证回调／返回泛型，发布包运行时验证多目标返回集合与 DOM 一致。
+
+本轮第 16–20 项验证：全部 178 项测试通过，包含发布包消费者的严格声明检查；pnpm build 的项目类型检查、Vite 打包和声明生成均通过。
 
 ### 21. [P2] isJQuery 将任意含 jquery 属性的对象收窄为完整 JQuery
 

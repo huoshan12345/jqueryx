@@ -31,7 +31,7 @@ void [empty, title, inputs, sequence, wrapped];
 
 buttons.title('ready').href('/').targetBlank().voidHref().disable().enable()[0].disabled = true;
 buttons.pointer().underline().flex().flexWrap().inlineBlock().inlineFlex()
-  .cssImp('color', 'red').tryCss('color', 'red').tryAddClass('ready')
+  .cssImportant('color', 'red').tryCss('color', 'red').tryAddClass('ready')
   .padding(1).color('red').visible(true)[0].disabled = true;
 buttons.textContent('ready').ownText('ready').throwIfEmpty()
   .collapseBrs().trimLeadingBrs().refineUrls([], new URL('https://example.com'))[0].disabled = true;
@@ -43,15 +43,25 @@ buttons.where(button => button.disabled)[0].disabled = false;
 for (const [, button] of buttons.entries()) {
   button.disabled = true;
 }
-const replacement: JQuery<HTMLInputElement> = buttons.replaceBy(nodes => {
+const replacement: JQuery<HTMLInputElement> = buttons.replaceBy((nodes, index) => {
+  const position: number = index;
   nodes[0].disabled = true;
+  void position;
   return $(document.createElement('input'));
 });
+buttons.cssImportant('padding', '20px');
+// @ts-expect-error CSS values must include their units explicitly where needed.
+buttons.cssImportant('padding', 20);
+// @ts-expect-error The abbreviated method was renamed.
+buttons.cssImp('color', 'red');
+$.scrollToNode(buttons, { behavior: 'smooth', block: 'center' });
+$.scrollToNode(document.createElement('button'));
+$.scrollToNode('button');
 buttons.observe((records, observer, nodes) => nodes[0].disabled = true).disconnect();
 
 const svg = $(document.createElementNS('http://www.w3.org/2000/svg', 'svg'));
 const svgNodes: SVGSVGElement[] = svg.asEnumerable().toArray();
-svg.cssImp('fill', 'red').title('svg')[0].viewBox;
+svg.cssImportant('fill', 'red').title('svg')[0].viewBox;
 // @ts-expect-error SVG elements are not HTML elements.
 const htmlNodes: HTMLElement[] = svg.asEnumerable().toArray();
 // @ts-expect-error SVG elements do not have HTMLElement.click().
@@ -70,7 +80,7 @@ text.where(node => node.data.length > 0);
 text.observe(() => {}, { characterData: true }).disconnect();
 $(document).observe(() => {}).disconnect();
 // @ts-expect-error Text nodes have no style.
-text.cssImp('color', 'red');
+text.cssImportant('color', 'red');
 // @ts-expect-error Text nodes have no attributes.
 text.targetBlank();
 // @ts-expect-error Text nodes have no element-specific extensions.

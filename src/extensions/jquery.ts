@@ -25,9 +25,15 @@ declare global {
     checked(): boolean;
     entries(): IterableIterator<[number, TElement]>;
     asEnumerable(): Enumerable.IEnumerable<TElement>;
+    /**
+     * Replaces each element separately, returning all replacements in callback order.
+     * Return the current element to keep it, or an empty collection to delete it.
+     * Reused replacement nodes are cloned with jQuery events and data.
+     * Earlier replacements remain if a later callback fails.
+     */
     replaceBy<TReplacement extends Element>(
       this: this & JQuery<Element>,
-      replacement: (node: this) => JQuery<TReplacement>,
+      replacement: (node: JQuery<TElement>, index: number) => JQuery<TReplacement>,
     ): JQuery<TReplacement>;
     ifEmpty(selector: string): JQuery<TElement | HTMLElement>;
     where(predicate: (e: TElement, index: number) => Nullishable<boolean>): JQuery<TElement>;
@@ -171,25 +177,45 @@ $.fn.asEnumerable = function <TElement = HTMLElement>(this: JQuery<TElement>): E
   return Enumerable.from(() => enumerate(this));
 };
 
-$.fn.replaceBy = function <T extends JQuery<Element>, TReplacement extends Element>(
-  this: T,
-  replacement: (node: T) => JQuery<TReplacement>,
-) {
-  let newNodes = replacement(this);
-  if (Object.is(newNodes, this)) {
-    newNodes = newNodes.clone();
+$.fn.replaceBy = function <TElement extends Element, TReplacement extends Element>(
+  this: JQuery<TElement>,
+  replacement: (node: JQuery<TElement>, index: number) => JQuery<TReplacement>,
+): JQuery<TReplacement> {
+  const sources = this.toArray();
+  const sourceSet = new Set<Element>(sources);
+  const used = new Set<Element>();
+  const results: TReplacement[] = [];
 
-    for (let i = 0; i < this.length; i++) {
-      const newNode = newNodes[i];
-      const oldNode = this[i];
-      oldNode.after(newNode);
+  for (const [index, source] of sources.entries()) {
+    const replacements: TReplacement[] = [];
+    for (const candidate of replacement($(source), index)) {
+      // Do not move a previous replacement or another source still awaiting its callback.
+      const node = used.has(candidate) || (!Object.is(candidate, source) && sourceSet.has(candidate))
+        ? $(candidate).clone(true, true)[0]
+        : candidate;
+      replacements.push(node);
+      used.add(node);
     }
 
-  } else {
-    this.after(newNodes);
+    const parent = source.parentNode;
+    if (parent) {
+      // A stable insertion position also permits returning the source among new siblings.
+      const marker = source.ownerDocument.createComment('');
+      parent.insertBefore(marker, source);
+      try {
+        for (const node of replacements) {
+          parent.insertBefore(node, marker);
+        }
+        if (!replacements.some(node => Object.is(node, source))) {
+          $(source).remove();
+        }
+      } finally {
+        marker.remove();
+      }
+    }
+    results.push(...replacements);
   }
-  this.remove();
-  return newNodes;
+  return $(results);
 };
 
 $.fn.ifEmpty = function <TElement>(this: JQuery<TElement>, selector: string): JQuery<TElement | HTMLElement> {

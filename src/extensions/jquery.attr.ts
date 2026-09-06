@@ -95,9 +95,9 @@ $.fn.voidHref = function <T extends JQuery<Element>>(this: T) {
   return this.href("javascript:;");
 };
 
-$.fn.hasUrlHref = function () {
+$.fn.hasUrlHref = function (): boolean {
   const href = this.prop('href');
-  return href && !href.startsWith('javascript:');
+  return !!href && !href.startsWith('javascript:');
 };
 
 $.fn.disable = function <T extends JQuery<Element>>(this: T) {
