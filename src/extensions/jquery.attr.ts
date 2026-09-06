@@ -49,13 +49,17 @@ function textContent<T extends JQuery<Node>>(this: T, value?: string): T | strin
   if (value == undefined) {
     return this.text();
   }
-  this.text(value);
-  // jQuery.text(value) skips standalone Text nodes; preserve this API's Node support.
-  return this.each((_, node) => {
-    if (node.nodeType === Node.TEXT_NODE) {
-      node.nodeValue = value;
+
+  for (const item of this.enumerate()) {
+    for (const { item: node, isFirst } of item.textNodes().asEnumerable().position()) {
+      if (isFirst) {
+        node.nodeValue = value;
+      } else {
+        node.remove();
+      }
     }
-  });
+  }
+  return this;
 }
 
 $.fn.textContent = textContent;
