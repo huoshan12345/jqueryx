@@ -65,7 +65,7 @@ export class ClickOptions implements EventHandlerOptions {
   }
 };
 
-/** Text presentation data for consumers; jqueryx does not render or apply this interface itself. */
+/** Text presentation data for consumers; jqueryex does not render or apply this interface itself. */
 export interface JQueryTextInfo {
   /** Text or number to present. */
   text: string | number;

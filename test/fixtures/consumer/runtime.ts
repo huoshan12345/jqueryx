@@ -1,6 +1,6 @@
 import assert from 'node:assert/strict';
 import { createRequire } from 'node:module';
-import type { JQueryObservation } from 'jqueryx';
+import type { JQueryObservation } from 'jqueryex';
 
 declare global {
   interface JQuery {
@@ -39,7 +39,7 @@ try {
   };
 
   const { button, empty } = application ?? await import('./entry.js');
-  const { ClickOptions } = await import('jqueryx');
+  const { ClickOptions } = await import('jqueryex');
   const clickOptions = new ClickOptions({ preventDefault: false });
   assert.equal(clickOptions.preventDefault, false);
   assert.equal(clickOptions.disableWhileProcessing, true);
@@ -63,7 +63,7 @@ try {
   assert.equal(callbacks, 0, 'The DOM extension must read the host callOnStart default.');
   MutationObserverOptions.default = { callOnStart: true };
   observations.push(button.observe(() => { callbacks++; }));
-  assert.equal(callbacks, 1, 'Changing host defaults must affect subsequent jqueryx observations.');
+  assert.equal(callbacks, 1, 'Changing host defaults must affect subsequent jqueryex observations.');
 
   const sequence = button.asEnumerable();
   const hostSequence = Enumerable.from([]);

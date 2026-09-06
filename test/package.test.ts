@@ -28,9 +28,9 @@ function runNode(script: string, args: string[], cwd = root) {
 
 beforeAll(() => {
   mkdirSync(cacheRoot, { recursive: true });
-  temporaryDirectory = mkdtempSync(join(cacheRoot, 'jqueryx-package-'));
+  temporaryDirectory = mkdtempSync(join(cacheRoot, 'jqueryex-package-'));
   consumerDirectory = join(temporaryDirectory, 'consumer');
-  const packageDirectory = join(consumerDirectory, 'node_modules', 'jqueryx');
+  const packageDirectory = join(consumerDirectory, 'node_modules', 'jqueryex');
   const outputDirectory = join(packageDirectory, 'dist');
   const helperDirectory = join(temporaryDirectory, 'helpers');
 
@@ -45,12 +45,12 @@ beforeAll(() => {
   expect(examples.length).toBeGreaterThan(0);
   const exampleFiles = examples.map((example, index) => {
     const file = `readme-example-${index + 1}.ts`;
-    writeFileSync(join(consumerDirectory, file), `import 'jqueryx';\n${example[1]}\nexport {};\n`);
+    writeFileSync(join(consumerDirectory, file), `import 'jqueryex';\n${example[1]}\nexport {};\n`);
     return file;
   });
 
   // Allows validating an unpublished peer build without changing the repository's dependency ranges.
-  const builtinxPackage = process.env['JQUERYX_BUILTINX_PACKAGE_DIR'];
+  const builtinxPackage = process.env['JQUERYEX_BUILTINX_PACKAGE_DIR'];
   if (builtinxPackage) {
     const peerManifest = JSON.parse(readFileSync(join(builtinxPackage, 'package.json'), 'utf8'));
     expect(peerManifest.name).toBe('builtinx');
@@ -134,7 +134,7 @@ test.each(['tsconfig.json', 'tsconfig.nodenext.json'])(
 );
 
 test('the published declaration graph uses explicit relative ESM paths', () => {
-  const entry = readFileSync(join(consumerDirectory, 'node_modules/jqueryx/dist/index.d.ts'), 'utf8');
+  const entry = readFileSync(join(consumerDirectory, 'node_modules/jqueryex/dist/index.d.ts'), 'utf8');
   expect(entry).toContain("'./extensions/index.js'");
   expect(entry).toContain("'./types/lib.js'");
 });
