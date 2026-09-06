@@ -151,14 +151,22 @@ svg.cssIfNotEmpty('fill', 'red').addClassIfNotEmpty(['ready'])[0].viewBox;
 void [replacement, svgNodes, htmlNodes, withFallback, onlyText, optionalColor, requiredColor,
   optionalHex, requiredHex, fallbackHex];
 
-const waitOptions: WaitForNodesOptions = { timeoutMs: 500, signal: new AbortController().signal, includeIframes: true };
-const matchingButtons: Promise<JQuery<HTMLButtonElement>> = $(document).waitForNodes<HTMLButtonElement>('button', waitOptions);
-const defaultMatches: Promise<JQuery<HTMLElement>> = buttons.waitForNodes('.child');
-$(document.createDocumentFragment()).waitForNodes('button');
-// @ts-expect-error Text is not a searchable root.
-text.waitForNodes('button');
+const waitOptions: WaitForNodesOptions = {
+  timeoutMs: 500,
+  pollIntervalMs: 50,
+  signal: new AbortController().signal,
+  includeIframes: true,
+};
+// @ts-expect-error The polling interval must be numeric.
+$.waitForNodes('.child', { pollIntervalMs: '50' });
+const matchingButtons: Promise<JQuery<HTMLButtonElement>> = $.waitForNodes<HTMLButtonElement>('button', waitOptions);
+const defaultMatches: Promise<JQuery<HTMLElement>> = $.waitForNodes('.child');
+// @ts-expect-error Waiting is a static API, not a collection method.
+buttons.waitForNodes('button');
+// @ts-expect-error Query roots are not part of the static API.
+$.waitForNodes('button', { root: document });
 // @ts-expect-error Selector results must be Elements.
-$(document).waitForNodes<Text>('button');
+$.waitForNodes<Text>('button');
 // @ts-expect-error The old uncancellable callback API was replaced.
 buttons.onNodeExists('button', () => {});
 const urlOptions: RefineUrlsOptions = { addImageFallbackLinks: true, pathRewrite: path => path + '/updated' };

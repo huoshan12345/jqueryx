@@ -102,7 +102,7 @@ setter 只特殊处理 Text，对其他无直接文本子节点的 Node 都尝�
 
 验证：新增七项回归用例覆盖父子顺序颠倒、非直接祖先、重复输入、多棵子树的顺序及索引、保留或删除父节点、用子节点替换父节点、回调移动后代。原复现仅调用一次回调并返回 main 中唯一的 b。264 项测试及完整构建通过。
 
-### 8. [P2] waitForNodes 可查询根外祖先条件，但不会观察条件变化
+### 8. [已修复并验证 2026-09-06] [P2] waitForNodes 可查询根外祖先条件，但不会观察条件变化
 
 位置：[jquery.wait.ts:74](D:/projects/_libraries/jqueryx/src/extensions/jquery.wait.ts:74)、[jquery.wait.ts:118](D:/projects/_libraries/jqueryx/src/extensions/jquery.wait.ts:118)。
 
@@ -111,6 +111,10 @@ Element.querySelectorAll 的选择器可以依赖根元素以外的祖先，但 
 复现：`<main><section><i></i></section></main>` 中对 section 调用 `waitForNodes('.ready i')`，随后只给 main 加 ready。此时 section.querySelectorAll('.ready i') 已有一个结果，等待仍直到 TimeoutError 才结束。
 
 建议：统一查询与观察边界。支持这类选择器时，需要观察影响匹配的祖先变化；若仅支持由根内变化驱动的匹配，应在 API 设计上明确这个限制，而不是声称支持任意 DOM 驱动的选择器变化。
+
+修复：按用户确认的方案改用 JQueryStatic 上的 $.waitForNodes(selector, options?)，默认查询当前 document，移除实例方法、多根节点处理及根参数。立即查询一次，随后按 pollIntervalMs（默认 100 ms，有限正数）重复查询；保留泛型返回值、默认 30 秒超时、零超时只查一次、AbortSignal、去重结果及同源 iframe 查询。每轮重新发现 iframe 文档，不再维护 MutationObserver 或 load 监听。使用单个递归 setTimeout 调度查询或超时；超时优先于同一时刻的后续查询，长延时按原生定时器上限分段，成功、失败和取消均释放定时器及 abort 监听。实现继续放在 jquery.wait.ts。
+
+验证：新增并调整回归测试，覆盖页面内祖先 class、checked property、默认及自定义轮询间隔、超时边界、取消、查询异常、iframe 新增/移除/文档更换及访问权限变化。静态入口不依赖接收对象，包含 documentElement，并且只在游离节点插入页面后匹配；iframe 文档和结果去重。两种加载顺序的发布包运行时用例验证实际定时器等待及旧实例入口已移除；严格 Bundler / NodeNext 消费者声明覆盖静态泛型、pollIntervalMs 类型，并拒绝旧实例调用和 root 选项。281 项测试及完整构建通过。轮询可能漏掉两次查询之间短暂出现又消失的匹配，此限制已写入 API 注释。
 
 ### 9. [P2] hasUrlHref 假设所有 Element.href 都是字符串
 

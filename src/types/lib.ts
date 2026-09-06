@@ -16,9 +16,11 @@ export interface JQueryObservation {
 export interface WaitForNodesOptions {
   /** Finite non-negative milliseconds. Defaults to 30,000; zero checks only once. */
   timeoutMs?: number;
+  /** Finite positive milliseconds between queries. Defaults to 100. */
+  pollIntervalMs?: number;
   /** Cancels the wait with signal.reason, including if already aborted. */
   signal?: AbortSignal;
-  /** Includes accessible iframe documents and subsequent frame loads. Defaults to false. */
+  /** Discovers accessible iframe documents on every query. Defaults to false. */
   includeIframes?: boolean;
 }
 

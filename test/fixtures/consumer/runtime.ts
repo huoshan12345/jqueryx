@@ -81,9 +81,12 @@ try {
   await Promise.resolve();
   assert.equal(callbacks, 1, 'Disconnecting the published subscriptions must stop all callbacks.');
 
-  const waiting = button.waitForNodes<HTMLSpanElement>('span.ready', { timeoutMs: 1_000 });
+  assert.equal('waitForNodes' in $.fn, false);
+  button.appendTo(document.body);
+  const waiting = $.waitForNodes<HTMLSpanElement>('span.ready', { timeoutMs: 1_000 });
   button.find('span').addClass('ready');
   assert.equal((await waiting)[0], button.find('span')[0]);
+  button.detach();
 
   const textRoots = $('<div>a<b>b</b></div><div>c</div>');
   const preservedChild = textRoots.find('b')[0];
