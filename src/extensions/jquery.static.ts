@@ -6,13 +6,14 @@ declare global {
     /** Scrolls the first match into view using its native scrolling containers. Empty matches do nothing. */
     scrollToNode(element: string | Element | JQuery<Element>, options?: ScrollIntoViewOptions): void;
     from(value: null | undefined): JQuery;
-    from<T extends Element>(collection: JQuery<T>): JQuery<T>;
-    from<T extends Element = HTMLElement>(elements: Nullishable<OneOrMany<T | JQuery<T>>>): JQuery<T>;
-    from(selector: Nullishable<OneOrMany<string | JQuery>>): JQuery;
+    from<T extends Node>(collection: JQuery<T>): JQuery<T>;
+    from<T extends Node = HTMLElement>(elements: Nullishable<OneOrMany<T | JQuery<T>>>): JQuery<T>;
+    from<T extends Node = HTMLElement>(selector: Nullishable<OneOrMany<string | JQuery<T>>>): JQuery<T>;
     /** Recognizes collections from the shared jQuery instance; does not validate their contents. */
     isJQuery(value: unknown): value is JQuery<unknown>;
     /** Recognizes native Elements across realms, including documents without a window. */
     isElement(value: unknown): value is Element;
+    isNode(value: unknown): value is Node;
   }
 }
 
@@ -31,6 +32,23 @@ $.isElement = function (value: unknown): value is Element {
     // The native getter validates the Element receiver without relying on its realm
     // or ownerDocument, which may have no window or may change after adoption.
     getElementTagName.call(value);
+    return true;
+  } catch {
+    return false;
+  }
+};
+
+const getNodeType = Object.getOwnPropertyDescriptor(Node.prototype, 'nodeType')!.get!;
+
+$.isNode = function (value: unknown): value is Node {
+  if (value == null || typeof value !== 'object') {
+    return false;
+  }
+
+  try {
+    // Same trick as isElement: the native getter brand-checks the receiver
+    // independent of realm/prototype identity, so this works across iframes too.
+    getNodeType.call(value);
     return true;
   } catch {
     return false;
@@ -63,10 +81,10 @@ $.scrollToNode = function (element: string | Element | JQuery<Element>, options?
 };
 
 function from(value: null | undefined): JQuery;
-function from<T extends Element>(collection: JQuery<T>): JQuery<T>;
-function from<T extends Element = HTMLElement>(elements: Nullishable<OneOrMany<T | JQuery<T>>>): JQuery<T>;
-function from(selector: Nullishable<OneOrMany<string | JQuery>>): JQuery;
-function from<T extends Element>(items: Nullishable<OneOrMany<string | JQuery | T>>): JQuery<unknown> {
+function from<T extends Node>(collection: JQuery<T>): JQuery<T>;
+function from<T extends Node>(elements: Nullishable<OneOrMany<T | JQuery<T>>>): JQuery<T>;
+function from<T extends Node>(selector: Nullishable<OneOrMany<string | JQuery<T>>>): JQuery<T>;
+function from<T extends Node>(items: Nullishable<OneOrMany<string | JQuery | T>>): JQuery<unknown> {
   if (items == null) {
     return $<T>();
   }
@@ -79,7 +97,7 @@ function from<T extends Element>(items: Nullishable<OneOrMany<string | JQuery | 
     return items;
   }
 
-  if ($.isElement(items)) {
+  if ($.isNode(items)) {
     return $(items);
   }
 
@@ -99,7 +117,7 @@ function from<T extends Element>(items: Nullishable<OneOrMany<string | JQuery | 
       result = result.add($(item) as any);
     } else if ($.isJQuery(item)) {
       result = result.add(item as any);
-    } else if ($.isElement(item)) {
+    } else if ($.isNode(item)) {
       result = result.add($(item) as any);
     } else {
       const type = BuiltinX.Type.get(item);

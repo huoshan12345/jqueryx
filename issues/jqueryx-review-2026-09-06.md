@@ -156,6 +156,8 @@ setter 通过 textNodes 进入 template.content，但 getter 委托 jQuery.text(
 
 剩余问题二：textNodes() 使用广度优先队列，再通过 jQuery.add 排序。template.content 是独立的 DocumentFragment，无法靠普通 DOM 排序恢复它在外部文本之间的位置。临时探针复现 `<div>a<template>b<span>c</span></template>d</div>` 返回 adbc；模板内容 `a<template>b</template>c` 返回 acb。应明确包含模板内容的遍历顺序，在模板位置深度优先进入其 content，并保留既有去重及普通 DOM 根顺序规则。本次仅复核并补测试，未修改产品源码。
 
+后续复核：用户已将队列改为栈，但根节点及子节点仍按正序入栈，导致逆序访问；result.add 仍会重新进行 DOM 排序。现有混合集合测试由 abc 变为 cba；模板混排探针由预期 abcd 得到 dbca，嵌套模板由 abc 得到 cba。需要反序入栈并按遍历顺序收集 Text，最后一次包装为 JQuery；既有普通 DOM 重叠/倒序根的顺序要求也需在输入规范化时保持，不能依赖输出 add 排序。空模板分支仍应将 HTML template 的实际插入目标改为 template.content，并使用该目标的 ownerDocument 创建文本。
+
 ## 验证与范围
 
 - 临时缺陷探针：12 个断言用例通过（其中包含第 9 项的受控模拟），并通过项目类型检查。它们是现状复现，已在审查结束前删除。

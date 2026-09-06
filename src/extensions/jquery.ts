@@ -116,12 +116,12 @@ $.fn.textNodes = function (
   excludeSelectors: readonly string[] = [],
 ): JQuery<Text> {
   const stack = new Stack<Node>();
-  for (const root of this) {
+  for (const root of this.asEnumerable().reverse()) {
     stack.push(root);
   }
 
   const visited = new Set<Node>();
-  let result = $<Text>();
+  let nodes: Text[] = [];
   while (stack.isNotEmpty()) {
     const node = stack.pop();
     if (visited.has(node)) {
@@ -130,7 +130,7 @@ $.fn.textNodes = function (
     visited.add(node);
 
     if (node.nodeType === Node.TEXT_NODE) {
-      result = result.add(node as Text);
+      nodes.push(node as Text);
       continue;
     }
 
@@ -144,14 +144,14 @@ $.fn.textNodes = function (
       }
     }
 
-    for (const child of wrappedNode.contents()) {
+    for (const child of wrappedNode.contents().asEnumerable().reverse()) {
       if (child.nodeType === Node.ELEMENT_NODE || child.nodeType === Node.TEXT_NODE) {
         stack.push(child);
       }
     }
   }
 
-  return result;
+  return $.from(nodes);
 };
 
 function visible(this: JQuery<Element>): boolean;
