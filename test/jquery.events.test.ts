@@ -393,3 +393,37 @@ test.each(['throw', 'reject'] as const)('a click handler %s restores state befor
   expect(restoredPriority).toBe('important');
   expect(button[0].style.pointerEvents).toBe('auto');
 });
+test.each([undefined, false, true])('onClickGotoHref only changes anchors in a mixed collection with openNew=%s', openNew => {
+  const root = $('<div><a href="#first" target="frame">first</a><button onclick="return false" target="keep">button</button><a href="#second">second</a></div>');
+  const nodes = root.children();
+  const anchors = root.find('a');
+  const button = root.find('button');
+  const anchorClick = vi.fn();
+  const buttonClick = vi.fn();
+  const nativeButtonClick = vi.fn();
+  const parentClick = vi.fn();
+  anchors.on('click', anchorClick).attr('onclick', 'return false');
+  button.on('click', buttonClick);
+  button[0].addEventListener('click', nativeButtonClick);
+  root.on('click', parentClick);
+  const addButtonListener = vi.spyOn(button[0], 'addEventListener');
+
+  expect(nodes.onClickGotoHref(openNew)).toBe(nodes);
+  expect(addButtonListener).not.toHaveBeenCalled();
+  expect(button.attr('onclick')).toBe('return false');
+  expect(button.attr('target')).toBe('keep');
+  expect(anchors.eq(0).attr('target')).toBe(openNew ? '_blank' : 'frame');
+  expect(anchors.eq(1).attr('target')).toBe(openNew ? '_blank' : undefined);
+  expect(anchors.eq(0).attr('href')).toBe('#first');
+  expect(anchors.eq(1).attr('href')).toBe('#second');
+  for (const anchor of anchors) {
+    expect(anchor.hasAttribute('onclick')).toBe(false);
+    $(anchor).triggerHandler('click');
+  }
+  expect(anchorClick).not.toHaveBeenCalled();
+
+  button[0].dispatchEvent(new MouseEvent('click', { bubbles: true, cancelable: true }));
+  expect(buttonClick).toHaveBeenCalledOnce();
+  expect(nativeButtonClick).toHaveBeenCalledOnce();
+  expect(parentClick).toHaveBeenCalledOnce();
+});

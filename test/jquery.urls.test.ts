@@ -113,6 +113,29 @@ test('keeps the legacy path callback and supports it in the options object', () 
   expect(root.find('a').attr('href')).toBe('https://local.example/prefix/image.png');
 });
 
+test('rewriting visible URLs preserves child elements, jQuery data and event handlers', () => {
+  const anchor = $('<a href="https://remote.example/path"><span>https://remote.example/path</span><img src="icon.png"></a>');
+  const label = anchor.find('span');
+  const image = anchor.find('img');
+  const children = anchor.children().toArray();
+  const labelClick = vi.fn();
+  const imageClick = vi.fn();
+  const data = { keep: true };
+  label.data('state', data).on('click', labelClick);
+  image.data('state', data).on('click', imageClick);
+
+  expect(anchor.refineUrls(['remote.example'], baseUrl)).toBe(anchor);
+  expect(anchor.attr('href')).toBe('https://local.example/path');
+  expect(label.text()).toBe('https://local.example/path');
+  expect(anchor.children().toArray()).toEqual(children);
+  expect(label.data('state')).toBe(data);
+  expect(image.data('state')).toBe(data);
+  label.triggerHandler('click');
+  image.triggerHandler('click');
+  expect(labelClick).toHaveBeenCalledOnce();
+  expect(imageClick).toHaveBeenCalledOnce();
+});
+
 test('handles selected images independently, including duplicate collection entries', () => {
   const first = imageFixture('/first.png');
   const second = imageFixture('/second.png');

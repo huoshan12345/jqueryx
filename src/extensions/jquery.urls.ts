@@ -22,27 +22,27 @@ $.fn.refineUrls = function <T extends JQuery<Element>>(
   // Preserve the existing path-rewrite callback form.
   const settings = typeof options === 'function' ? { pathRewrite: options } : options ?? {};
   const { pathRewrite, addImageFallbackLinks } = settings;
-  const nodes = this;
+  const elements = this;
 
   const images: JQuery<Element>[] = [];
-  for (const e of nodes) {
-    const node = $(e);
+  for (const el of elements) {
+    const $el = $(el);
 
     let attrName: string;
-    switch (e.tagName) {
+    switch (el.tagName) {
       case 'A':
         attrName = 'href';
         break;
       case 'IMG':
         attrName = 'src';
-        images.push(node);
+        images.push($el);
         break;
       default:
-        console.styled('unsupported tag: ', { text: e.tagName, color: 'blue' });
+        console.styled('unsupported tag: ', { text: el.tagName, color: 'blue' });
         continue;
     }
 
-    const src = node.attr(attrName);
+    const src = $el.attr(attrName);
 
     if (!src)
       continue;
@@ -74,17 +74,19 @@ $.fn.refineUrls = function <T extends JQuery<Element>>(
     u.port = baseUrl.port;
 
     const newSrc = u.toString();
-    node.attr(attrName, newSrc);
+    $el.attr(attrName, newSrc);
 
-    const text = node.textContent();
-    if (!text)
-      continue;
+    for (const textNode of $el.textNodes()) {
+      const text = textNode.nodeValue;
+      if (!text)
+        continue;
 
-    const newText = text.replace(src, newSrc);
-    if (text === newText)
-      continue;
+      const newText = text.replace(src, newSrc);
+      if (text === newText)
+        continue;
 
-    node.textContent(newText);
+      textNode.nodeValue = newText;
+    }
   }
 
   for (const node of images) {

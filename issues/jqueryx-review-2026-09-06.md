@@ -60,7 +60,7 @@ setter 只特殊处理 Text，对其他无直接文本子节点的 Node 都尝�
 
 ## 行为缺陷
 
-### 5. [P1] refineUrls 更新可见 URL 时删除链接内部结构和事件数据
+### 5. [部分修复 2026-09-06，仍有文本位置问题] [P1] refineUrls 更新可见 URL 时删除链接内部结构和事件数据
 
 位置：[jquery.urls.ts:79](D:/projects/_libraries/jqueryx/src/extensions/jquery.urls.ts:79)。
 
@@ -70,7 +70,9 @@ setter 只特殊处理 Text，对其他无直接文本子节点的 Node 都尝�
 
 建议：将属性改写和展示文本改写分开；需要同步展示文本时，仅修改对应 Text 节点，保留其他节点身份。跨多个 Text 节点的 URL 需要明确处理规则，不能通过整体 `.text()` 隐式销毁结构。
 
-### 6. [P2] onClickGotoHref 会清除混合集合中非链接元素的 click 行为
+复核：用户已改为 textContent(newText)，子元素身份、jQuery data 和事件监听器保留，新增对应回归测试通过。但 textContent setter 会把全部后代文本合并到第一个 Text 节点，仍改变文本的所在元素。临时探针复现：`Visit <strong>https://remote.example/path</strong><em> now</em>` 改写后为 `Visit https://local.example/path now<strong></strong><em></em>`；加粗与斜体丢失。需要仅替换 URL 对应的文本范围，保留其他文本的位置；本次复核未修改产品源码。
+
+### 6. [已修复并验证 2026-09-06] [P2] onClickGotoHref 会清除混合集合中非链接元素的 click 行为
 
 位置：[jquery.events.ts:142](D:/projects/_libraries/jqueryx/src/extensions/jquery.events.ts:142)。
 
@@ -79,6 +81,8 @@ setter 只特殊处理 Text，对其他无直接文本子节点的 Node 都尝�
 复现：一个 a 和一个带 click 回调的 button 同时调用 onClickGotoHref，随后 button.trigger('click') 不再执行原回调。
 
 建议：先筛出需要恢复导航的链接，再只处理该子集，最终返回原集合保留链式操作。按这个目的，名称可考虑 restoreHrefNavigation；不应让非链接元素承担恢复链接导航的副作用。
+
+复核：用户改为 enumerate 后逐元素判断 a，仅对链接执行原有操作，返回原集合。新增 openNew 为 undefined / false / true 的混合集合回归测试，验证非链接元素的 jQuery 和原生 click 监听器、向父级冒泡、onclick 和 target 属性均保留；两个链接的 click 清理和 target 设置符合原有规则。验证范围为本项的非链接副作用，不代表已执行浏览器页面跳转。
 
 ### 7. [P2] replaceBy 未处理父子节点同时入选的情况
 
