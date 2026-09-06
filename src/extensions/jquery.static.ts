@@ -7,7 +7,8 @@ declare global {
     from(selector: Nullishable<OneOrMany<string | JQuery>>): JQuery;
     from<T extends Element>(element: Nullishable<OneOrMany<T>>): JQuery<T>;
     isJQuery<T extends Element = HTMLElement>(value: unknown): value is JQuery<T>;
-    isElement(value: unknown): value is Element
+    /** Recognizes native Elements across realms, including documents without a window. */
+    isElement(value: unknown): value is Element;
   }
 }
 
@@ -15,19 +16,21 @@ $.isJQuery = function <T extends Element = HTMLElement>(value: unknown): value i
   return !!value && typeof value === 'object' && 'jquery' in value;
 };
 
+const getElementTagName = Object.getOwnPropertyDescriptor(Element.prototype, 'tagName')!.get!;
+
 $.isElement = function (value: unknown): value is Element {
   if (value == null || typeof value !== "object") {
     return false;
   }
 
-  const maybeNode = value as {
-    ownerDocument?: {
-      defaultView?: (Window & typeof globalThis) | null;
-    };
-  };
-
-  const win = maybeNode.ownerDocument?.defaultView;
-  return !!win && value instanceof win.Element;
+  try {
+    // The native getter validates the Element receiver without relying on its realm
+    // or ownerDocument, which may have no window or may change after adoption.
+    getElementTagName.call(value);
+    return true;
+  } catch {
+    return false;
+  }
 };
 
 $.search = function (selector: string, checkIframesIfEmpty: boolean = true): JQuery {
@@ -101,7 +104,7 @@ function from<T extends Element>(items: Nullishable<OneOrMany<string | JQuery | 
       result = result.add($(item) as any);
     } else if ($.isJQuery<T>(item)) {
       result = result.add(item as any);
-    } else if (item instanceof Element) {
+    } else if ($.isElement(item)) {
       result = result.add($(item) as any);
     } else {
       const type = BuiltinX.Type.get(item);

@@ -186,7 +186,7 @@ IMG 在验证 URL 和 hosts 之前就加入 images 列表，因此即使完全�
 
 复核：现有 7 个 .test.ts 文件覆盖事件、观察、等待、文本、URL、类型相关运行时行为与发布包消费者。当前 pnpm test 执行 114 项测试全部通过，已不存在 No test files found 问题；完整 pnpm build 也通过。此处确认本地结果，未实际运行 GitHub Actions。
 
-### 12. [部分修复 2026-09-05] [P2] PR 检查的构建步骤与触发范围
+### 12. [已修复 2026-09-05] [P2] PR 检查的构建步骤与触发范围
 
 位置：[build.yml:83](../.github/workflows/build.yml#L83)、[build.yml:86](../.github/workflows/build.yml#L86)。
 
@@ -196,11 +196,11 @@ IMG 在验证 URL 和 hosts 之前就加入 images 列表，因此即使完全�
 
 复核：用户新增的 Run build with pnpm 位于发布步骤之前，无步骤级 if 条件；PR 和 main push 只要进入 build job 都会运行。pnpm build 已包含 type-check、Vite 打包和声明生成，本地完整运行通过，因此无需再加一个重复的 type-check 步骤。
 
-剩余：build job 仍由 paths filter 控制，`.github/workflows/build.yml:37-45` 尚未包含 pnpm-lock.yaml 与 pnpm-workspace.yaml；仅修改这两个文件时仍会跳过构建和测试，因此本项暂标记部分修复。建议在该过滤列表加入这两个路径。本次仅复核工作流，未修改用户的 CI 配置；发布分支中的第二次 build 可另行去重，但不属于正确性阻塞。
+再次复核：用户已将 `**/pnpm-lock.yaml` 和 `**/pnpm-workspace.yaml` 加入 paths filter，两个模式均覆盖仓库根目录对应文件；本项已修复。新增 test/build-workflow.test.ts，从实际 workflow 的 filter 中提取模式，验证两个根目录文件都在触发范围内。本次确认配置和本地构建／测试结果，未实际运行 GitHub Actions。发布分支中的第二次 build 可另行去重，但不属于正确性阻塞。
 
 ## 实现缺陷
 
-### 13. [P2] ownText 删除实时 childNodes 中的节点会漏删相邻文本
+### 13. [已修复 2026-09-05] [P2] ownText 删除实时 childNodes 中的节点会漏删相邻文本
 
 位置：[jquery.ts:330](../src/extensions/jquery.ts#L330)。
 
@@ -210,7 +210,11 @@ childNodes 是实时列表，在 for-of 中删除当前 child 会改变后续索
 
 建议先快照 childNodes，或显式保存 nextSibling 再删除，保留且设置一个文本节点。
 
-### 14. [P2] asEnumerable 把可重复遍历的集合变成一次性序列
+复核：用户现在先将待删除 Text 放入 toRemove，完成 childNodes 遍历后统一删除，不再改变正在遍历的实时列表。保留该实现，未再次改写。
+
+验证：新增 3 项 ownText 回归测试，确认四个相邻文本节点不会漏删，夹杂元素／注释时保留节点身份和后代文本，多根集合及空字符串也逐根正确处理。
+
+### 14. [已修复 2026-09-05] [P2] asEnumerable 把可重复遍历的集合变成一次性序列
 
 位置：[jquery.ts:252](../src/extensions/jquery.ts#L252)。
 
@@ -220,7 +224,11 @@ childNodes 是实时列表，在 for-of 中删除当前 child 会改变后续索
 
 建议直接将 JQuery 作为可重复遍历的 array-like 输入，或传入每次创建迭代器的工厂。
 
-### 15. [P2] from 的元素识别在独立文档和 iframe 输入之间不一致
+复核：用户改为 `Enumerable.from(() => enumerate(this))`，每次枚举都由工厂创建新的 generator；修复方向和实际运行结果均正确，保留该实现。
+
+验证：test/jquery.enumeration.test.ts 的 5 项测试覆盖 count 后继续遍历、多次 toArray、两个迭代器交错推进、提前退出后重新遍历、enumerate 派生序列及空集合。发布包消费者也验证同一序列可以重复枚举。
+
+### 15. [已修复 2026-09-05] [P2] from 的元素识别在独立文档和 iframe 输入之间不一致
 
 位置：[jquery.static.ts:18](../src/extensions/jquery.static.ts#L18)、[jquery.static.ts:104](../src/extensions/jquery.static.ts#L104)。
 
@@ -229,6 +237,12 @@ childNodes 是实时列表，在 for-of 中删除当前 child 会改变后续索
 验证：独立文档的 div 满足 `instanceof Element`，却被 isElement 判为 false，from 抛错；iframe 元素单独传入 from 成功，把同一元素放入数组就失败。这些输入都符合公开签名。
 
 建议统一元素识别策略，同时处理当前 realm、无 window 的文档和其他 realm；单项与 ArrayLike 分支复用同一判断。
+
+修复前的补充验证：还复现了 iframe 元素被 adoptNode 移至其他 document 后识别失败，以及仿 Element 原型或带抛错 ownerDocument getter 的对象令 isElement 抛错。这说明不能只增加当前窗口 instanceof 的 fallback。
+
+修复：isElement 使用当前 realm 的原生 Element.tagName getter 校验接收者，支持其他 realm、没有 window 的 HTML／XML 文档以及被 adoptNode 移动的元素；不再读取输入的 ownerDocument 来选择构造函数。非 Element 返回 false。from 的单元素与 ArrayLike 成员识别统一调用 isElement，保留输入元素身份。
+
+验证：test/jquery.static.test.ts 的 22 项测试覆盖当前文档、独立 HTML 文档、iframe 及其独立文档、XML、跨文档 adoption、已移除 iframe、SVG、HTMLCollection／NodeList、混合集合、非元素和伪装对象，以及原有 selector／JQuery／空输入行为。发布包消费者覆盖独立文档和 iframe 数组输入，声明测试检查元素子类型保留。运行时验证使用 jsdom，未声称执行真实浏览器跨源访问测试。全部 146 项测试、严格声明检查及完整 pnpm build 通过。
 
 ### 16. [P2] DOM 原型包装方法不能处理本包 search 返回的 iframe 节点
 

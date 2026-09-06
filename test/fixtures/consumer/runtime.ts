@@ -63,6 +63,7 @@ try {
     'asEnumerable must create sequences from the host linqx module.',
   );
   assert.deepEqual(Enumerable.from(sequence).toArray(), [button[0]]);
+  assert.deepEqual(Enumerable.from(sequence).toArray(), [button[0]]);
   assert.deepEqual(button.enumerate().select(node => node.title()).toArray(), ['ready']);
   for (const observation of observations) {
     observation.disconnect();
@@ -86,6 +87,19 @@ try {
   assert.equal(imageRoot.find('a').attr('href'), '/image.png');
   imageRoot.find('img').refineUrls([], new URL('https://example.com'));
   assert.equal(imageRoot.find('a').length, 0);
+
+  const independentButton = document.implementation.createHTMLDocument().createElement('button');
+  assert.ok($.isElement(independentButton));
+  assert.equal($.from(independentButton)[0], independentButton);
+  const frame = document.createElement('iframe');
+  document.body.append(frame);
+  try {
+    const foreignButton = frame.contentDocument!.createElement('button');
+    assert.ok($.isElement(foreignButton));
+    assert.deepEqual($.from([foreignButton, independentButton]).toArray(), [foreignButton, independentButton]);
+  } finally {
+    frame.remove();
+  }
 } finally {
   for (const observation of observations) {
     observation.disconnect();

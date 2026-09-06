@@ -168,8 +168,7 @@ function* enumerate<T>(j: JQuery<T>) {
 }
 
 $.fn.asEnumerable = function <TElement = HTMLElement>(this: JQuery<TElement>): Enumerable.IEnumerable<TElement> {
-  const e = enumerate(this);
-  return Enumerable.from(e);
+  return Enumerable.from(() => enumerate(this));
 };
 
 $.fn.replaceBy = function <T extends JQuery<Element>, TReplacement extends Element>(
@@ -234,16 +233,21 @@ function ownText<T extends JQuery<Node>>(this: T, value?: string): T | string {
       continue;
     }
 
+    const toRemove = [];
     let set = false;
     for (const child of element.childNodes) {
       if (child.nodeType === Node.TEXT_NODE) {
         if (set) {
-          child.remove();
+          toRemove.push(child);
         } else {
           child.nodeValue = value;
           set = true;
         }
       }
+    }
+
+    for (const child of toRemove) {
+      child.remove();
     }
 
     if (set === false) {

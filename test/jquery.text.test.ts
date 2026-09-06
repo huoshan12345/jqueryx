@@ -107,3 +107,37 @@ test('textContent merges adjacent Text nodes without deleting non-text siblings'
   expect(comment.parentNode).toBe(root);
   expect([...root.childNodes].filter(node => node.nodeType === Node.TEXT_NODE)).toHaveLength(1);
 });
+
+test('ownText removes all adjacent direct Text nodes after the first', () => {
+  const root = document.createElement('div');
+  root.append('a', 'b', 'c', 'd');
+  const first = root.firstChild;
+  expect($(root).ownText('new')[0]).toBe(root);
+  expect(root.textContent).toBe('new');
+  expect([...root.childNodes]).toEqual([first]);
+});
+
+test('ownText preserves non-text nodes and descendant text between direct Text nodes', () => {
+  const root = document.createElement('div');
+  const child = document.createElement('b');
+  child.textContent = 'nested';
+  const comment = document.createComment('keep');
+  root.append('a', 'b', child, 'c', 'd', comment, 'e');
+  const first = root.firstChild;
+  $(root).ownText('new');
+  expect($(root).ownText()).toBe('new');
+  expect(child.textContent).toBe('nested');
+  expect([...root.childNodes]).toEqual([first, child, comment]);
+});
+
+test('ownText sets multiple roots independently and supports an empty string', () => {
+  const first = document.createElement('div');
+  const second = document.createElement('div');
+  first.append('a', 'b', 'c');
+  second.append('d', 'e', 'f');
+  const nodes = $([first, second]);
+  nodes.ownText('');
+  expect(nodes.map((_, node) => node.textContent).get()).toEqual(['', '']);
+  expect(first.childNodes).toHaveLength(1);
+  expect(second.childNodes).toHaveLength(1);
+});

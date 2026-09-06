@@ -115,3 +115,16 @@ const shown: void = dialog.show();
 const visibleDialog: HTMLDialogElement = dialog.setVisible(true);
 const visibleSvg: SVGSVGElement = svg[0].setVisible(false);
 void [shown, visibleDialog, visibleSvg];
+
+const detachedButton = document.implementation.createHTMLDocument().createElement('button');
+const fromButton: JQuery<HTMLButtonElement> = $.from(detachedButton);
+const fromButtons: JQuery<HTMLButtonElement> = $.from([detachedButton]);
+const fromSvg: JQuery<SVGSVGElement> = $.from(svg[0]);
+const unknownElement: unknown = detachedButton;
+if ($.isElement(unknownElement)) {
+  const element: Element = unknownElement;
+  void element;
+}
+// @ts-expect-error Element input must retain its actual subtype.
+const fromInput: JQuery<HTMLInputElement> = $.from(detachedButton);
+void [fromButton, fromButtons, fromSvg, fromInput];
