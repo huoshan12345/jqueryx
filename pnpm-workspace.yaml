@@ -1,2 +1,6 @@
 allowBuilds:
   esbuild: true
+minimumReleaseAgeExclude:
+  - vitest-canvas-mock
+  - linqx
+  - builtinx

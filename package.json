@@ -12,7 +12,10 @@
   "main": "dist/index.js",
   "types": "dist/index.d.ts",
   "exports": {
-    ".": "./dist/index.js"
+    ".": {
+      "types": "./dist/index.d.ts",
+      "default": "./dist/index.js"
+    }
   },
   "files": [
     "dist",
@@ -37,19 +40,24 @@
   },
   "devDependencies": {
     "@phiberber/pinst": "^3.0.1",
-    "@types/jquery": "^4.0.1",
     "@types/node": "^26.4.1",
+    "builtinx": "^0.3.3",
+    "jquery": "^4.0.0",
+    "linqx": "^0.3.4",
     "npm-run-all2": "^9.0.3",
     "shx": "^0.4.0",
     "tsc-alias": "^1.9.4",
     "typescript": "^7.0.2",
     "vite": "^8.2.2",
-    "vitest": "^5.0.0",
-    "vitest-canvas-mock": "^1.1.5"
+    "vitest": "^4.1.1",
+    "vitest-canvas-mock": "^1.2.0"
   },
   "dependencies": {
-    "builtinx": "^0.2.2",
+    "@types/jquery": "^4.0.1"
+  },
+  "peerDependencies": {
+    "builtinx": "^0.3.3",
     "jquery": "^4.0.0",
-    "linqx": "^0.2.1"
+    "linqx": "^0.3.4"
   }
 }

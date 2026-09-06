@@ -38,6 +38,8 @@ jobs:
               - '**/*.js'
               - '**/*.ts'
               - '**/package.json'
+              - '**/pnpm-lock.yaml'
+              - '**/pnpm-workspace.yaml'
               - '**/src/**'
               - '**/test/**'
               - '**/tsconfig.*.json'
@@ -74,11 +76,14 @@ jobs:
         uses: actions/setup-node@v6
         with:
           node-version: 24
-          registry-url: 'https://registry.npmjs.org'
-          cache: 'pnpm'
+          registry-url: "https://registry.npmjs.org"
+          cache: "pnpm"
 
       - name: Install dependencies with pnpm
         run: pnpm install --frozen-lockfile
+
+      - name: Run build with pnpm
+        run: pnpm build
 
       - name: Run tests with pnpm
         run: pnpm test

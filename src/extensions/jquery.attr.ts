@@ -1,26 +1,37 @@
 import type { URLLike } from 'builtinx';
 
 declare global {
-  interface JQuery {
-    title(): string | undefined;
-    title(value: string): JQuery;
-    requiredTitle(): string;
-    targetBlank(onlyUpdate?: boolean): JQuery;
-    textContent(): string;
-    textContent(value: string): JQuery;
-    requiredHref(): string;
-    href(): string | undefined;
-    href(value: URLLike): JQuery;
-    voidHref(): JQuery;
-    hasUrlHref(): boolean;
-    disable(): JQuery;
-    enable(): JQuery;
+  interface JQuery<TElement = HTMLElement> {
+    /** Reads the first element's title attribute; undefined for a missing attribute or empty collection. */
+    title(this: this & JQuery<Element>): string | undefined;
+    /** Sets every title attribute, including empty strings, and returns this. */
+    title(this: this & JQuery<Element>, value: string): this;
+    /** Reads the first title attribute; throws Error if missing or empty. Does not trim whitespace. */
+    requiredTitle(this: this & JQuery<Element>): string;
+    /** Sets target="_blank" on every element; onlyUpdate defaults to true and skips already matching attributes. */
+    targetBlank(this: this & JQuery<Element>, onlyUpdate?: boolean): this;
+    /** Reads the first raw href attribute; throws Error if missing or empty. */
+    requiredHref(this: this & JQuery<Element>): string;
+    /** Reads the first raw href attribute without resolving relative URLs; undefined when missing or empty collection. */
+    href(this: this & JQuery<Element>): string | undefined;
+    /** Sets every href attribute to value.toString() and returns this. An empty string is retained. */
+    href(this: this & JQuery<Element>, value: URLLike): this;
+    /** Sets every href to "javascript:;" and returns this. */
+    voidHref(this: this & JQuery<Element>): this;
+    /** Tests the first raw href for a nonempty value not starting with lowercase "javascript:"; not URL validation. */
+    hasUrlHref(this: this & JQuery<Element>): boolean;
+    /** Sets the live disabled property to true for every selected element and returns this. */
+    disable(this: this & JQuery<Element>): this;
+    /** Sets the live disabled property to false for every selected element and returns this. */
+    enable(this: this & JQuery<Element>): this;
+    /** Returns whether any member matches jQuery :checked, including selected options; false when empty. */
+    checked(): boolean;
   }
 }
 
-function title(this: JQuery): string | undefined;
-function title(this: JQuery, value: string): JQuery;
-function title(this: JQuery, value?: string): JQuery | string | undefined {
+function title(this: JQuery<Element>): string | undefined;
+function title<T extends JQuery<Element>>(this: T, value: string): T;
+function title<T extends JQuery<Element>>(this: T, value?: string): T | string | undefined {
   if (value == null) {
     return this.attr('title');
   } else {
@@ -33,7 +44,7 @@ $.fn.requiredTitle = function (): string {
   return this.attr('title') || Error.throw("The element does not have title.");
 };
 
-$.fn.targetBlank = function (onlyUpdate: boolean = true) {
+$.fn.targetBlank = function <T extends JQuery<Element>>(this: T, onlyUpdate: boolean = true) {
   const node = onlyUpdate
     ? this.filter((i, e) => e.getAttribute('target') != '_blank')
     : this;
@@ -41,37 +52,9 @@ $.fn.targetBlank = function (onlyUpdate: boolean = true) {
   return this;
 };
 
-function textContent(this: JQuery): string;
-function textContent(this: JQuery, value: string): JQuery;
-function textContent(this: JQuery, value?: string): JQuery | string {
-  const nodes = this
-    .contents()
-    .addBack() // 有可能自身是文本节点
-    .filter((i, e) => e.nodeType === Node.TEXT_NODE);
-
-  if (value == undefined) {
-    return nodes.text();
-  }
-
-  if (nodes.isEmpty()) {
-    return this.text(value);
-  }
-
-  for (const { item, isFirst } of nodes.asEnumerable().position()) {
-    if (isFirst) {
-      item.textContent = value;
-    } else {
-      item.remove();
-    }
-  }
-  return this;
-}
-
-$.fn.textContent = textContent;
-
-function href(this: JQuery): string | undefined;
-function href(this: JQuery, value: URLLike): JQuery;
-function href(this: JQuery, value?: URLLike): JQuery | string | undefined {
+function href(this: JQuery<Element>): string | undefined;
+function href<T extends JQuery<Element>>(this: T, value: URLLike): T;
+function href<T extends JQuery<Element>>(this: T, value?: URLLike): T | string | undefined {
   if (value == undefined) {
     return this.attr('href');
   } else {
@@ -80,23 +63,27 @@ function href(this: JQuery, value?: URLLike): JQuery | string | undefined {
 }
 $.fn.href = href;
 
-$.fn.requiredHref = function (this: JQuery): string {
+$.fn.requiredHref = function (): string {
   return this.attr('href') || Error.throw("The element does not have href.");
 };
 
-$.fn.voidHref = function (): JQuery {
+$.fn.voidHref = function <T extends JQuery<Element>>(this: T) {
   return this.href("javascript:;");
 };
 
-$.fn.hasUrlHref = function () {
-  const href = this.prop('href');
-  return href && !href.startsWith('javascript:');
+$.fn.hasUrlHref = function (): boolean {
+  const href = this.attr('href');
+  return !!href && !href.startsWith('javascript:');
 };
 
-$.fn.disable = function () {
+$.fn.disable = function <T extends JQuery<Element>>(this: T) {
   return this.prop("disabled", true);
 };
 
-$.fn.enable = function () {
+$.fn.enable = function <T extends JQuery<Element>>(this: T) {
   return this.prop("disabled", false);
+};
+
+$.fn.checked = function (): boolean {
+  return this.is(":checked");
 };

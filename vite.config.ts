@@ -11,10 +11,12 @@ export default defineConfig({
   plugins: [
   ],
   build: {
+    rolldownOptions: {
+      external: [/^(jquery|builtinx|linqx)(\/|$)/],
+    },
     lib: {
       entry: {
         index: resolve(dir, 'src/index.ts'),
-        dom: resolve(dir, 'src/dom.ts')
       },
       formats: ['es']
     },
