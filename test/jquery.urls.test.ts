@@ -185,6 +185,43 @@ test('preserves text split across elements when no individual text node contains
   expect(anchor.textNodes().toArray()).toEqual(textNodes);
 });
 
+test.each(['', ' / '])('rewrites every repeated URL in one text node with separator %j', separator => {
+  const source = 'https://remote.example/path?q=1#section';
+  const target = 'https://local.example/path?q=1#section';
+  const anchor = $('<a><strong></strong><em>keep</em></a>').attr('href', source);
+  const label = anchor.find('strong');
+  label.text(`Before ${[source, source, source].join(separator)} after`);
+  const textNode = label[0].firstChild;
+  const children = anchor.children().toArray();
+
+  anchor.refineUrls(['remote.example'], baseUrl);
+
+  expect(anchor.attr('href')).toBe(target);
+  expect(label.text()).toBe(`Before ${[target, target, target].join(separator)} after`);
+  expect(label[0].firstChild).toBe(textNode);
+  expect(anchor.children().toArray()).toEqual(children);
+  expect(anchor.find('em').text()).toBe('keep');
+});
+
+test.each(['$&', '$$', "$'"])(
+  'treats %s in the replacement URL as literal text',
+  pattern => {
+    const source = 'https://remote.example/path';
+    const target = `https://local.example/${pattern}`;
+    const anchor = $('<a><strong></strong><em>keep</em></a>').attr('href', source);
+    const label = anchor.find('strong');
+    label.text(`Before ${source} / ${source} after`);
+    const textNode = label[0].firstChild;
+
+    anchor.refineUrls(['remote.example'], baseUrl, () => `/${pattern}`);
+
+    expect(anchor.attr('href')).toBe(target);
+    expect(label.text()).toBe(`Before ${target} / ${target} after`);
+    expect(label[0].firstChild).toBe(textNode);
+    expect(anchor.find('em').text()).toBe('keep');
+  },
+);
+
 test('handles selected images independently, including duplicate collection entries', () => {
   const first = imageFixture('/first.png');
   const second = imageFixture('/second.png');

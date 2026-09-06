@@ -81,7 +81,7 @@ $.fn.refineUrls = function <T extends JQuery<Element>>(
       if (!text)
         continue;
 
-      const newText = text.replaceAll(src, newSrc);
+      const newText = text.replaceAll(src, () => newSrc);
       if (text === newText)
         continue;
 
