@@ -49,6 +49,10 @@ declare global {
     search(this: this & JQuery<Node>, selector: string, checkIframesIfEmpty?: boolean): JQuery;
     enumerate(): Enumerable.IEnumerable<JQuery<TElement>>;
     ownText(this: this & JQuery<Node>): string;
+    /**
+     * Sets direct text on Element and DocumentFragment roots, preserving other children.
+     * Updates Text roots directly and skips all other node types.
+     */
     ownText(this: this & JQuery<Node>, value: string): this;
     tap(action: (node: this) => void): this;
     tapIf(condition: (node: this) => boolean, action: (node: this) => void): this;
@@ -262,6 +266,10 @@ function ownText<T extends JQuery<Node>>(this: T, value?: string): T | string {
   for (const element of this) {
     if (element.nodeType === Node.TEXT_NODE) {
       element.nodeValue = value;
+      continue;
+    }
+
+    if (element.nodeType !== Node.ELEMENT_NODE && element.nodeType !== Node.DOCUMENT_FRAGMENT_NODE) {
       continue;
     }
 

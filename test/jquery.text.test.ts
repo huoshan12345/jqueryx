@@ -141,3 +141,59 @@ test('ownText sets multiple roots independently and supports an empty string', (
   expect(first.childNodes).toHaveLength(1);
   expect(second.childNodes).toHaveLength(1);
 });
+
+test.each([
+  ['Document', () => document.implementation.createHTMLDocument('keep')],
+  ['Comment', () => document.createComment('keep')],
+  ['DocumentType', () => document.implementation.createDocumentType('html', '', '')],
+  ['Attr', () => {
+    const attribute = document.createAttribute('title');
+    attribute.value = 'keep';
+    return attribute;
+  }],
+  ['ProcessingInstruction', () => document.createProcessingInstruction('target', 'keep')],
+  ['CDATASection', () => document.implementation.createDocument(null, 'root').createCDATASection('keep')],
+] as const)('ownText skips %s and continues updating supported nodes', (_, createNode) => {
+  const skipped = createNode();
+  const originalValue = skipped.nodeValue;
+  const originalText = skipped.textContent;
+  const originalChildren = [...skipped.childNodes];
+  const text = document.createTextNode('old');
+  const element = document.createElement('div');
+  element.textContent = 'old';
+  const nodes = $<Node>();
+  $.merge(nodes, [skipped, text, element]);
+
+  expect(nodes.ownText('new')).toBe(nodes);
+  expect(skipped.nodeValue).toBe(originalValue);
+  expect(skipped.textContent).toBe(originalText);
+  expect([...skipped.childNodes]).toEqual(originalChildren);
+  expect(text.nodeValue).toBe('new');
+  expect(element.textContent).toBe('new');
+});
+
+test.each([
+  ['Element', () => document.createElement('div')],
+  ['DocumentFragment', () => document.createDocumentFragment()],
+  ['ShadowRoot', () => document.createElement('div').attachShadow({ mode: 'open' })],
+] as const)('ownText inserts and updates direct text in %s while preserving other nodes', (_, createRoot) => {
+  const root = createRoot();
+  const child = document.createElement('b');
+  child.textContent = 'nested';
+  const comment = document.createComment('keep');
+  root.append(child, comment);
+  const nodes = $(root);
+
+  expect(nodes.ownText('new')).toBe(nodes);
+  const firstText = root.firstChild;
+  expect(firstText?.nodeType).toBe(Node.TEXT_NODE);
+  expect(firstText?.nodeValue).toBe('new');
+  expect([...root.childNodes]).toEqual([firstText, child, comment]);
+
+  root.append('extra', 'text');
+  nodes.ownText('');
+  expect(firstText?.nodeValue).toBe('');
+  expect([...root.childNodes]).toEqual([firstText, child, comment]);
+  expect(child.textContent).toBe('nested');
+  expect(comment.nodeValue).toBe('keep');
+});

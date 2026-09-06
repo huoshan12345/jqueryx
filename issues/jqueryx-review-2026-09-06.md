@@ -46,7 +46,7 @@
 
 修复：增加优先匹配的 JQuery<T> 元素集合重载，并让元素、集合及二者混合的 ArrayLike 输入保留 T extends Element 类型；保留 null/undefined 和空数组的默认 HTMLElement 集合类型。运行时继续保留现有共享实例集合的身份，集合分组使用既有展开逻辑。消费者类型与运行时用例覆盖 input/button/SVG、分组、混合输入、空输入和错误元素类型赋值。
 
-### 4. [P2] ownText setter 的 Node 接收范围大于实现支持范围
+### 4. [已修复 2026-09-06] [P2] ownText setter 的 Node 接收范围大于实现支持范围
 
 位置：[jquery.ts:52](D:/projects/_libraries/jqueryx/src/extensions/jquery.ts:52)、[jquery.ts:285](D:/projects/_libraries/jqueryx/src/extensions/jquery.ts:285)。
 
@@ -55,6 +55,8 @@ setter 只特殊处理 Text，对其他无直接文本子节点的 Node 都尝�
 复现：`$(document).ownText('text')` 和 `$(document.createComment('old')).ownText('text')` 均通过类型检查并在运行时抛 HierarchyRequestError。
 
 建议：getter 与 setter 分别表达接收范围；setter 至少限定为 Element / DocumentFragment / Text，或明确定义并实现其他节点类型的写入行为。
+
+修复：按用户确认的跳过策略保留 JQuery<Node> 签名。setter 只处理 Element、DocumentFragment（含 ShadowRoot）和 Text；其他节点保持原样并继续处理集合内后续节点，返回原集合。Element / DocumentFragment 仍只修改直接文本并保留其他子节点，Text 直接赋值。新增回归用例覆盖六类被跳过节点、混合集合、三类容器的开头插入、清空及节点身份保留。
 
 ## 行为缺陷
 
