@@ -1,4 +1,4 @@
-# jqueryx
+# jqueryx [![NPM Version](https://img.shields.io/npm/v/@huoshan12345/jqueryx)](https://www.npmjs.com/package/@huoshan12345/jqueryx) [![LICENSE](https://img.shields.io/github/license/mashape/apistatus.svg)](LICENSE.TXT) [![Build](https://github.com/huoshan12345/jqueryx/actions/workflows/build.yml/badge.svg)](https://github.com/huoshan12345/jqueryx/actions/workflows/build.yml)
 
 Typed jQuery extensions for collections, DOM text, styles, events, observation and asynchronous node discovery.
 
