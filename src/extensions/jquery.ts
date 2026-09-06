@@ -35,7 +35,9 @@ declare global {
     entries(): IterableIterator<[number, TElement]>;
     asEnumerable(): Enumerable.IEnumerable<TElement>;
     /**
-     * Replaces each element separately, returning all replacements in callback order.
+     * Replaces each distinct outermost selected element, returning replacements in callback order.
+     * Selection is fixed before callbacks: selected descendants are skipped even if their ancestor is kept.
+     * Callbacks follow the original collection order and receive the first original index of each root.
      * Return the current element to keep it, or an empty collection to delete it.
      * Reused replacement nodes are cloned with jQuery events and data.
      * Earlier replacements remain if a later callback fails.
@@ -192,11 +194,26 @@ $.fn.replaceBy = function <TElement extends Element, TReplacement extends Elemen
   replacement: (node: JQuery<TElement>, index: number) => JQuery<TReplacement>,
 ): JQuery<TReplacement> {
   const sources = this.toArray();
-  const sourceSet = new Set<Element>(sources);
+  const selected = new Set<Element>(sources);
+  const seen = new Set<Element>();
+  // Resolve overlapping selections before callbacks can change the DOM.
+  const roots = [...sources.entries()].filter(([, source]) => {
+    if (seen.has(source)) {
+      return false;
+    }
+    seen.add(source);
+    for (let ancestor = source.parentElement; ancestor; ancestor = ancestor.parentElement) {
+      if (selected.has(ancestor)) {
+        return false;
+      }
+    }
+    return true;
+  });
+  const sourceSet = new Set<Element>(roots.map(([, source]) => source));
   const used = new Set<Element>();
   const results: TReplacement[] = [];
 
-  for (const [index, source] of sources.entries()) {
+  for (const [index, source] of roots) {
     const replacements: TReplacement[] = [];
     for (const candidate of replacement($(source), index)) {
       // Do not move a previous replacement or another source still awaiting its callback.

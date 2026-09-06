@@ -105,3 +105,94 @@ test('callback failure propagates without removing the failing source or leaving
   })).toThrow('failed');
   expect(root[0].innerHTML).toBe('<b>done</b><i>b</i>');
 });
+
+test.each([false, true])('only replaces the outermost selected ancestor with child-first=%s', childFirst => {
+  const root = $('<main><section><div><i>old</i></div></section></main>');
+  const parent = root.find('section')[0];
+  const child = root.find('i')[0];
+  const sources = $(childFirst ? [child, parent] : [parent, child]);
+  const callback = vi.fn((_node: JQuery<HTMLElement>, _index: number) => $('<b>new</b>'));
+
+  const result = sources.replaceBy(callback);
+
+  expect(callback).toHaveBeenCalledOnce();
+  expect(callback.mock.calls[0]?.[0]?.[0]).toBe(parent);
+  expect(callback.mock.calls[0]?.[1]).toBe(childFirst ? 1 : 0);
+  expect(result.toArray()).toEqual(root.children().toArray());
+  expect(root.html()).toBe('<b>new</b>');
+});
+
+test('deduplicates outermost sources while retaining original order and indexes', () => {
+  const root = $('<main><section><i>a</i></section><section><i>b</i></section></main>');
+  const parents = root.find('section').toArray();
+  const children = root.find('i').toArray();
+  const sources = $([children[1], parents[1], parents[1], children[0], parents[0], children[1]]);
+  const calls: Array<[Element, number]> = [];
+
+  const result = sources.replaceBy((node, index) => {
+    calls.push([node[0], index]);
+    return $('<b>').text(String(index));
+  });
+
+  expect(calls).toEqual([[parents[1], 1], [parents[0], 4]]);
+  expect(result.map((_, node) => node.textContent).get()).toEqual(['1', '4']);
+  expect(result.toArray()).toEqual(root.children().toArray().reverse());
+  expect(root.html()).toBe('<b>4</b><b>1</b>');
+});
+
+test('keeping the selected parent does not invoke the child callback or clear its data', () => {
+  const root = $('<main><section><button>keep</button></section></main>');
+  const parent = root.find('section');
+  const child = root.find('button').data('value', 42);
+  const clicked = vi.fn();
+  child.on('click', clicked);
+  const callback = vi.fn((node: JQuery<HTMLElement>) => node);
+
+  const result = root.find('section, button').replaceBy(callback);
+
+  expect(callback).toHaveBeenCalledOnce();
+  expect(result.toArray()).toEqual(parent.toArray());
+  expect(parent.children()[0]).toBe(child[0]);
+  expect(child.data('value')).toBe(42);
+  child.triggerHandler('click');
+  expect(clicked).toHaveBeenCalledOnce();
+});
+
+test('a selected descendant can replace its parent without being cloned or processed again', () => {
+  const root = $('<main><section><button>keep</button></section></main>');
+  const child = root.find('button').data('value', 42);
+  const callback = vi.fn(() => child);
+
+  const result = root.find('section, button').replaceBy(callback);
+
+  expect(callback).toHaveBeenCalledOnce();
+  expect(result.toArray()).toEqual(child.toArray());
+  expect(root.children()[0]).toBe(child[0]);
+  expect(child.data('value')).toBe(42);
+});
+
+test('deleting the outermost source does not create replacements for selected descendants', () => {
+  const root = $('<main><section><i>old</i></section></main>');
+  const callback = vi.fn(() => $());
+
+  const result = root.find('section, i').replaceBy(callback);
+
+  expect(callback).toHaveBeenCalledOnce();
+  expect(result).toHaveLength(0);
+  expect(root.html()).toBe('');
+});
+
+test('selects outermost sources before callbacks can move their descendants', () => {
+  const root = $('<main><section><i>keep</i></section></main>');
+  const child = root.find('i');
+  const callback = vi.fn(() => {
+    root.append(child);
+    return $('<b>new</b>');
+  });
+
+  const result = root.find('section, i').replaceBy(callback);
+
+  expect(callback).toHaveBeenCalledOnce();
+  expect(result.toArray()).toEqual(root.find('b').toArray());
+  expect(root.html()).toBe('<b>new</b><i>keep</i>');
+});
