@@ -60,7 +60,7 @@ setter 只特殊处理 Text，对其他无直接文本子节点的 Node 都尝�
 
 ## 行为缺陷
 
-### 5. [部分修复 2026-09-06，仍有文本位置问题] [P1] refineUrls 更新可见 URL 时删除链接内部结构和事件数据
+### 5. [已修复并验证 2026-09-06] [P1] refineUrls 更新可见 URL 时删除链接内部结构和事件数据
 
 位置：[jquery.urls.ts:79](D:/projects/_libraries/jqueryx/src/extensions/jquery.urls.ts:79)。
 
@@ -70,7 +70,9 @@ setter 只特殊处理 Text，对其他无直接文本子节点的 Node 都尝�
 
 建议：将属性改写和展示文本改写分开；需要同步展示文本时，仅修改对应 Text 节点，保留其他节点身份。跨多个 Text 节点的 URL 需要明确处理规则，不能通过整体 `.text()` 隐式销毁结构。
 
-复核：用户已改为 textContent(newText)，子元素身份、jQuery data 和事件监听器保留，新增对应回归测试通过。但 textContent setter 会把全部后代文本合并到第一个 Text 节点，仍改变文本的所在元素。临时探针复现：`Visit <strong>https://remote.example/path</strong><em> now</em>` 改写后为 `Visit https://local.example/path now<strong></strong><em></em>`；加粗与斜体丢失。需要仅替换 URL 对应的文本范围，保留其他文本的位置；本次复核未修改产品源码。
+复核：用户改为遍历 textNodes()，逐个修改匹配 Text 节点的 nodeValue。原先被合并的前缀、strong 中的 URL、em 中的后缀现保持各自位置，子元素、Text 节点身份、jQuery data 和事件监听器均保留。新增回归测试覆盖格式保持、多个独立文本节点中的 URL 替换及跨元素文本边界；252 项测试和完整构建通过，本次复核未修改产品源码。
+
+当前边界：只有完整落在单个 Text 节点内的 URL 才会替换；跨多个 Text 节点的 URL 保持原展示文本，href 仍更新。同一 Text 节点中使用 replace，只替换首次出现。上述限制与本项的节点结构及文本位置破坏分别记录。
 
 ### 6. [已修复并验证 2026-09-06] [P2] onClickGotoHref 会清除混合集合中非链接元素的 click 行为
 

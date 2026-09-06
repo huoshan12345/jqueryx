@@ -136,6 +136,55 @@ test('rewriting visible URLs preserves child elements, jQuery data and event han
   expect(imageClick).toHaveBeenCalledOnce();
 });
 
+test('rewriting a visible URL preserves text placement and surrounding formatting', () => {
+  const anchor = $('<a href="https://remote.example/path">Visit <strong>https://remote.example/path</strong><em> now</em><!--keep--><img src="icon.png"></a>');
+  const children = [...anchor[0].childNodes];
+  const textNodes = anchor.textNodes().toArray();
+  const label = anchor.find('strong');
+  const suffix = anchor.find('em');
+  const labelClick = vi.fn();
+  const state = { keep: true };
+  label.data('state', state).on('click', labelClick);
+
+  anchor.refineUrls(['remote.example'], baseUrl);
+
+  expect(anchor.attr('href')).toBe('https://local.example/path');
+  expect(anchor[0].firstChild?.nodeValue).toBe('Visit ');
+  expect(label.text()).toBe('https://local.example/path');
+  expect(suffix.text()).toBe(' now');
+  expect([...anchor[0].childNodes]).toEqual(children);
+  expect(anchor.textNodes().toArray()).toEqual(textNodes);
+  expect(label.data('state')).toBe(state);
+  label.triggerHandler('click');
+  expect(labelClick).toHaveBeenCalledOnce();
+});
+
+test('rewrites complete URLs in separate text nodes without merging them', () => {
+  const anchor = $('<a href="https://remote.example/path">First: https://remote.example/path <span>Second: https://remote.example/path!</span><em>keep</em></a>');
+  const textNodes = anchor.textNodes().toArray();
+
+  anchor.refineUrls(['remote.example'], baseUrl);
+
+  expect(textNodes.map(node => node.nodeValue)).toEqual([
+    'First: https://local.example/path ',
+    'Second: https://local.example/path!',
+    'keep',
+  ]);
+  expect(anchor.textNodes().toArray()).toEqual(textNodes);
+});
+
+test('preserves text split across elements when no individual text node contains the URL', () => {
+  const anchor = $('<a href="https://remote.example/path">https://remote.<strong>example/path</strong></a>');
+  const contents = anchor.html();
+  const textNodes = anchor.textNodes().toArray();
+
+  anchor.refineUrls(['remote.example'], baseUrl);
+
+  expect(anchor.attr('href')).toBe('https://local.example/path');
+  expect(anchor.html()).toBe(contents);
+  expect(anchor.textNodes().toArray()).toEqual(textNodes);
+});
+
 test('handles selected images independently, including duplicate collection entries', () => {
   const first = imageFixture('/first.png');
   const second = imageFixture('/second.png');
