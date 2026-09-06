@@ -1,17 +1,17 @@
-# jqueryex [![NPM Version](https://img.shields.io/npm/v/jqueryex)](https://www.npmjs.com/package/jqueryex) [![LICENSE](https://img.shields.io/github/license/mashape/apistatus.svg)](LICENSE.TXT) [![Build](https://github.com/huoshan12345/jqueryx/actions/workflows/build.yml/badge.svg)](https://github.com/huoshan12345/jqueryx/actions/workflows/build.yml)
+# @huoshan12345/jqueryx [![NPM Version](https://img.shields.io/npm/v/@huoshan12345/jqueryx)](https://www.npmjs.com/package/@huoshan12345/jqueryx) [![LICENSE](https://img.shields.io/github/license/mashape/apistatus.svg)](LICENSE.TXT) [![Build](https://github.com/huoshan12345/jqueryx/actions/workflows/build.yml/badge.svg)](https://github.com/huoshan12345/jqueryx/actions/workflows/build.yml)
 
 Typed jQuery extensions for collections, DOM text, styles, events, observation and asynchronous node discovery.
 
 ## Installation and initialization
 
 ```sh
-pnpm add jqueryex jquery builtinx linqx
+pnpm add @huoshan12345/jqueryx jquery builtinx linqx
 ```
 
-The package requires jQuery `^4.0.0`, builtinx `^0.3.3` and linqx `^0.3.4` as shared peers. jQuery types ship as a dependency. Import jqueryex once before running application code that uses its extensions:
+The package requires jQuery `^4.0.0`, builtinx `^0.3.3` and linqx `^0.3.4` as shared peers. jQuery types ship as a dependency. Import @huoshan12345/jqueryx once before running application code that uses its extensions:
 
 ```ts
-import 'jqueryex';
+import '@huoshan12345/jqueryx';
 
 const button = $('<button>').title('Save').pointer();
 button.onClick(async target => {
@@ -264,7 +264,7 @@ Cancellation happens synchronously before the callback, even for async handlers.
 Different selected elements can run concurrently. Overlapping bindings share pointer-style ownership until all finish; previous value/priority are restored even on failure. This does not set a control's disabled property. Setting disableWhileProcessing to false permits overlap and leaves pointer styles alone.
 
 ```ts
-import { ClickOptions } from 'jqueryex';
+import { ClickOptions } from '@huoshan12345/jqueryx';
 
 const options = new ClickOptions({ stopPropagation: true, onError: error => console.error(error) });
 $('button.save').onClick(async target => {

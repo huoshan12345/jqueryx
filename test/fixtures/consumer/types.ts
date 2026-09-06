@@ -1,10 +1,10 @@
-import 'jqueryex';
-import { ClickOptions } from 'jqueryex';
+import '@huoshan12345/jqueryx';
+import { ClickOptions } from '@huoshan12345/jqueryx';
 import type { Enumerable } from 'linqx';
 import 'linqx/extensions';
 import type { MutationObserverOptionsInit } from 'builtinx';
-import type { WaitForNodesOptions, RefineUrlsOptions } from 'jqueryex';
-import type { JQueryNode, JQueryTextInfo, JQueryMutationCallback, JQueryObservation } from 'jqueryex';
+import type { WaitForNodesOptions, RefineUrlsOptions } from '@huoshan12345/jqueryx';
+import type { JQueryNode, JQueryTextInfo, JQueryMutationCallback, JQueryObservation } from '@huoshan12345/jqueryx';
 
 const textInfo: JQueryTextInfo = {
   text: 42,
@@ -80,7 +80,7 @@ const wrapped: Enumerable.IEnumerable<JQuery<HTMLButtonElement>> = buttons.enume
 const observerOptions: MutationObserverOptionsInit = { callOnStart: false, debounce: false };
 buttons.observe(() => {}, observerOptions);
 
-// The global factory must retain jQuery's base types, not just jqueryex's augmentation.
+// The global factory must retain jQuery's base types, not just jqueryx's augmentation.
 // @ts-expect-error A button is not an input element.
 const inputs: JQuery<HTMLInputElement> = buttons;
 
