@@ -8,11 +8,19 @@ const buttons: JQuery<HTMLButtonElement> = $('button');
 const sameButtons: JQuery<HTMLButtonElement> = jQuery('button');
 const empty: boolean = buttons.isEmpty();
 const title: string | undefined = sameButtons.title();
-buttons.title('ready').onClick(target => target.focus());
+buttons.title('ready').onClick(target => {
+  // @ts-expect-error The event origin may be an SVG node, not an HTMLElement.
+  target.click();
+  if (target instanceof HTMLElement) {
+    target.focus();
+  }
+});
 buttons.onClick((target, originalEvent) => {
-  target.focus();
+  const origin: EventTarget = target;
+  // @ts-expect-error A click handler must not assume an HTML event origin.
+  const htmlOrigin: HTMLElement = target;
   const nativeEvent: MouseEvent | undefined = originalEvent;
-  void nativeEvent;
+  void [origin, htmlOrigin, nativeEvent];
 }, new ClickOptions({ preventDefault: false }));
 const collectedTexts: JQuery<Text> = buttons.textNodes('button, span', ['.ignore'] as const);
 buttons.textNodes(undefined, ['a']);
@@ -26,10 +34,19 @@ void collectedTexts;
 buttons.onClick(() => buttons.addClass('clicked'), {
   onError: error => String(error),
 });
-buttons.onKeyDown((target, key) => target.setAttribute('data-key', key), {
+buttons.onKeyDown((target, key) => {
+  // @ts-expect-error The event origin need not implement HTMLElement.click().
+  target.click();
+  if ($.isElement(target)) {
+    target.setAttribute('data-key', key);
+  }
+}, {
   onError: async error => String(error),
 });
-buttons.onEnterDown(target => target.focus(), {
+buttons.onEnterDown(target => {
+  // @ts-expect-error The event origin need not implement HTMLElement.focus().
+  target.focus();
+}, {
   onError: error => String(error),
 });
 
@@ -163,6 +180,20 @@ if ($.isElement(unknownElement)) {
 // @ts-expect-error Element input must retain its actual subtype.
 const fromInput: JQuery<HTMLInputElement> = $.from(detachedButton);
 void [fromButton, fromButtons, fromSvg, fromInput];
+
+const typedInputs = $(document.createElement('input'));
+const sameInputs: JQuery<HTMLInputElement> = $.from(typedInputs);
+const inputGroups: JQuery<HTMLInputElement> = $.from([typedInputs, typedInputs]);
+const mixedInputs: JQuery<HTMLInputElement> = $.from([typedInputs, typedInputs[0]]);
+const sameSvg: JQuery<SVGSVGElement> = $.from(svg);
+const svgGroups: JQuery<SVGSVGElement> = $.from([svg]);
+const sameButtonsFrom: JQuery<HTMLButtonElement> = $.from(buttons);
+const emptyFrom: JQuery<HTMLElement> = $.from(null);
+const emptyArrayFrom: JQuery<HTMLElement> = $.from([]);
+// @ts-expect-error Existing input collection types must not turn into button types.
+const invalidButtonGroup: JQuery<HTMLButtonElement> = $.from(typedInputs);
+void [sameInputs, inputGroups, mixedInputs, sameSvg, svgGroups, sameButtonsFrom, emptyFrom,
+  emptyArrayFrom, invalidButtonGroup];
 
 const unknownCollection: unknown = buttons;
 if ($.isJQuery(unknownCollection)) {

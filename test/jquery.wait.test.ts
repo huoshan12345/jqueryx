@@ -1,4 +1,4 @@
-import type { WaitForNodesOptions } from '@/types/lib';
+import type { WaitForNodesOptions } from '@/types/lib.js';
 
 const controllers: AbortController[] = [];
 const pending: Promise<unknown>[] = [];

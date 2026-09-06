@@ -1,4 +1,4 @@
-import type { JQueryObservation } from '@/types/lib';
+import type { JQueryObservation } from '@/types/lib.js';
 import { MutationObserverOptions } from 'builtinx';
 
 const subscriptions: JQueryObservation[] = [];

@@ -108,6 +108,20 @@ test('from preserves existing selector, JQuery and empty-input behavior', () => 
   expect($.from([])).toHaveLength(0);
 });
 
+test('from preserves typed element collections and flattens their groups', () => {
+  const first = $(document.createElement('input'));
+  const second = $(document.createElement('input'));
+  const same: JQuery<HTMLInputElement> = $.from(first);
+  const grouped: JQuery<HTMLInputElement> = $.from([first, second]);
+  const mixed: JQuery<HTMLInputElement> = $.from([first, second[0]]);
+  expect(same).toBe(first);
+  expect(grouped.toArray()).toEqual([first[0], second[0]]);
+  expect(mixed.toArray()).toEqual(grouped.toArray());
+  const svg = $(document.createElementNS('http://www.w3.org/2000/svg', 'svg'));
+  const svgGroup: JQuery<SVGSVGElement> = $.from([svg]);
+  expect(svgGroup[0]).toBe(svg[0]);
+});
+
 test.each([
   ['empty collection', () => $()],
   ['elements', () => $('<button>')],

@@ -1,4 +1,4 @@
-import type { WaitForNodesOptions } from '@/types/lib';
+import type { WaitForNodesOptions } from '../types/lib.js';
 
 type SearchRoot = Node & ParentNode;
 

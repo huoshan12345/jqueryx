@@ -1,4 +1,4 @@
 import 'jquery';
 import 'builtinx/dom';
-import '@/extensions';
-export * from './types/lib';
+import './extensions/index.js';
+export * from './types/lib.js';

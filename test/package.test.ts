@@ -39,6 +39,17 @@ beforeAll(() => {
   writeFileSync(join(packageDirectory, 'package.json'), JSON.stringify(manifest, null, 2));
   cpSync(join(fixtures, 'consumer'), consumerDirectory, { recursive: true });
 
+  // Allows validating an unpublished peer build without changing the repository's dependency ranges.
+  const builtinxPackage = process.env['JQUERYX_BUILTINX_PACKAGE_DIR'];
+  if (builtinxPackage) {
+    const peerManifest = JSON.parse(readFileSync(join(builtinxPackage, 'package.json'), 'utf8'));
+    expect(peerManifest.name).toBe('builtinx');
+    const peerDirectory = join(consumerDirectory, 'node_modules', 'builtinx');
+    mkdirSync(peerDirectory, { recursive: true });
+    writeFileSync(join(peerDirectory, 'package.json'), JSON.stringify(peerManifest, null, 2));
+    cpSync(join(builtinxPackage, 'dist'), join(peerDirectory, 'dist'), { recursive: true });
+  }
+
   runNode(compiler, ['-p', join(fixtures, 'tsconfig.json'), '--outDir', helperDirectory]);
   runNode(join(helperDirectory, 'build-package.js'), [outputDirectory]);
   runNode(compiler, ['-p', 'tsconfig.build.json', '--outDir', outputDirectory]);
@@ -61,6 +72,14 @@ beforeAll(() => {
     files: ['types.ts'],
   };
   writeFileSync(join(consumerDirectory, 'tsconfig.json'), JSON.stringify(consumerConfig, null, 2));
+  writeFileSync(join(consumerDirectory, 'tsconfig.nodenext.json'), JSON.stringify({
+    ...consumerConfig,
+    compilerOptions: {
+      ...consumerConfig.compilerOptions,
+      module: 'NodeNext',
+      moduleResolution: 'NodeNext',
+    },
+  }, null, 2));
   writeFileSync(join(consumerDirectory, 'tsconfig.runtime.json'), JSON.stringify({
     ...consumerConfig,
     compilerOptions: {
@@ -98,6 +117,14 @@ test.each(['host-first', 'package-first'])('the built entry shares all peer runt
   ]);
 });
 
-test('consumers get global factories and base types by importing only jqueryx', () => {
-  runNode(compiler, ['-p', join(consumerDirectory, 'tsconfig.json')]);
+test.each(['tsconfig.json', 'tsconfig.nodenext.json'])(
+  'consumers get global factories and base types using %s', config => {
+    runNode(compiler, ['-p', join(consumerDirectory, config)]);
+  },
+);
+
+test('the published declaration graph uses explicit relative ESM paths', () => {
+  const entry = readFileSync(join(consumerDirectory, 'node_modules/jqueryx/dist/index.d.ts'), 'utf8');
+  expect(entry).toContain("'./extensions/index.js'");
+  expect(entry).toContain("'./types/lib.js'");
 });

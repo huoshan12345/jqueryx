@@ -1,18 +1,19 @@
-import { ClickOptions, type EventHandlerOptions } from '@/types/lib';
+import { ClickOptions, type EventHandlerOptions } from '../types/lib.js';
 import type { Awaitable } from 'builtinx';
 
 declare global {
   interface JQuery<TElement = HTMLElement> {
     /**
      * Cancels events synchronously according to options, then invokes the handler.
-     * Processing is guarded per binding and bound element; target is event.target,
-     * which may be a descendant of the bound element. originalEvent is the native
+     * Processing is guarded per binding and bound element; target is event.target
+     * and may be a descendant of the bound element. Narrow its type before using
+     * element-specific members. originalEvent is the native
      * MouseEvent, or undefined for a jQuery-triggered click.
      * Handler return values are ignored. Errors go to onError, or console.error if omitted.
      */
     onClick(
       this: this & JQuery<HTMLElement>,
-      handler: (target: HTMLElement, originalEvent?: MouseEvent) => Awaitable<unknown>,
+      handler: (target: EventTarget, originalEvent?: MouseEvent) => Awaitable<unknown>,
       options?: Partial<ClickOptions>,
     ): this;
     onClickGotoHref(this: this & JQuery<Element>, openNew?: boolean): this;
@@ -22,13 +23,13 @@ declare global {
      */
     onKeyDown(
       this: this & JQuery<HTMLElement>,
-      handler: (target: HTMLElement, key: string) => Awaitable<unknown>,
+      handler: (target: EventTarget, key: string) => Awaitable<unknown>,
       options?: EventHandlerOptions,
     ): this;
     /** Like onKeyDown, but only handles and stops propagation for Enter. */
     onEnterDown(
       this: this & JQuery<HTMLElement>,
-      handler: (target: HTMLElement) => Awaitable<unknown>,
+      handler: (target: EventTarget) => Awaitable<unknown>,
       options?: EventHandlerOptions,
     ): this;
     triggerClick(this: this & JQuery<HTMLElement>): this;
@@ -100,7 +101,7 @@ async function runEventHandler(
 }
 
 $.fn.onClick = function (
-  handler: (target: HTMLElement, originalEvent?: MouseEvent) => Awaitable<unknown>,
+  handler: (target: EventTarget, originalEvent?: MouseEvent) => Awaitable<unknown>,
   options?: Partial<ClickOptions>,
 ) {
   const settings = new ClickOptions(options);
@@ -160,7 +161,7 @@ $.fn.onClickGotoHref = function <T extends JQuery<Element>>(this: T, openNew?: b
 
 function bindKeyDown<T extends JQuery<HTMLElement>>(
   nodes: T,
-  handler: (target: HTMLElement, key: string) => Awaitable<unknown>,
+  handler: (target: EventTarget, key: string) => Awaitable<unknown>,
   options?: EventHandlerOptions,
   requiredKey?: string,
 ): T {
@@ -174,14 +175,14 @@ function bindKeyDown<T extends JQuery<HTMLElement>>(
 }
 
 $.fn.onKeyDown = function (
-  handler: (target: HTMLElement, key: string) => Awaitable<unknown>,
+  handler: (target: EventTarget, key: string) => Awaitable<unknown>,
   options?: EventHandlerOptions,
 ) {
   return bindKeyDown(this, handler, options);
 };
 
 $.fn.onEnterDown = function (
-  handler: (target: HTMLElement) => Awaitable<unknown>,
+  handler: (target: EventTarget) => Awaitable<unknown>,
   options?: EventHandlerOptions,
 ) {
   return bindKeyDown(this, target => handler(target), options, 'Enter');

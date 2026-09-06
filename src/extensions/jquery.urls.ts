@@ -1,5 +1,5 @@
 import type { MatchPattern } from 'builtinx';
-import type { RefineUrlsOptions } from '@/types/lib';
+import type { RefineUrlsOptions } from '../types/lib.js';
 
 declare global {
   interface JQuery<TElement = HTMLElement> {

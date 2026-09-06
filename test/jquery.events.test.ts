@@ -1,3 +1,6 @@
+import type { EventHandlerOptions } from '@/types/lib.js';
+import type { Awaitable } from 'builtinx';
+
 function deferred() {
   let resolve!: () => void;
   let reject!: (error: unknown) => void;
@@ -244,6 +247,36 @@ interface EventBinding {
   trigger(nodes: JQuery): void;
 }
 
+test.each(['click', 'keydown', 'enter'] as const)(
+  '%s retains the actual SVG event origin and permits safe narrowing', async kind => {
+    const button = $('<button><svg tabindex="0"><path></path></svg></button>').appendTo(document.body);
+    const target = button.find('svg')[0];
+    let received: EventTarget | undefined;
+    const onError = vi.fn();
+    const handler = (origin: EventTarget) => {
+      received = origin;
+      if ($.isElement(origin)) {
+        origin.setAttribute('data-handled', 'yes');
+      }
+    };
+    if (kind === 'click') {
+      button.onClick(handler, { onError });
+      target.dispatchEvent(new MouseEvent('click', { bubbles: true }));
+    } else {
+      if (kind === 'keydown') {
+        button.onKeyDown(handler, { onError });
+      } else {
+        button.onEnterDown(handler, { onError });
+      }
+      target.dispatchEvent(new KeyboardEvent('keydown', { key: 'Enter', bubbles: true }));
+    }
+    await flushHandlers();
+    expect(received).toBe(target);
+    expect(target.getAttribute('data-handled')).toBe('yes');
+    expect(onError).not.toHaveBeenCalled();
+  },
+);
+
 const bindings: EventBinding[] = [
   {
     name: 'onClick',
@@ -360,5 +393,3 @@ test.each(['throw', 'reject'] as const)('a click handler %s restores state befor
   expect(restoredPriority).toBe('important');
   expect(button[0].style.pointerEvents).toBe('auto');
 });
-import type { Awaitable } from 'builtinx';
-import type { EventHandlerOptions } from '@/types/lib';

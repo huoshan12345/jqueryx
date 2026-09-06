@@ -5,8 +5,10 @@ declare global {
     search(selector: string, checkIframesIfEmpty?: boolean): JQuery;
     /** Scrolls the first match into view using its native scrolling containers. Empty matches do nothing. */
     scrollToNode(element: string | Element | JQuery<Element>, options?: ScrollIntoViewOptions): void;
+    from(value: null | undefined): JQuery;
+    from<T extends Element>(collection: JQuery<T>): JQuery<T>;
+    from<T extends Element = HTMLElement>(elements: Nullishable<OneOrMany<T | JQuery<T>>>): JQuery<T>;
     from(selector: Nullishable<OneOrMany<string | JQuery>>): JQuery;
-    from<T extends Element>(element: Nullishable<OneOrMany<T>>): JQuery<T>;
     /** Recognizes collections from the shared jQuery instance; does not validate their contents. */
     isJQuery(value: unknown): value is JQuery<unknown>;
     /** Recognizes native Elements across realms, including documents without a window. */
@@ -60,7 +62,9 @@ $.scrollToNode = function (element: string | Element | JQuery<Element>, options?
   node.scrollIntoView({ block: 'start', inline: 'nearest', ...options });
 };
 
-function from<T extends Element>(element: Nullishable<OneOrMany<T>>): JQuery<T>;
+function from(value: null | undefined): JQuery;
+function from<T extends Element>(collection: JQuery<T>): JQuery<T>;
+function from<T extends Element = HTMLElement>(elements: Nullishable<OneOrMany<T | JQuery<T>>>): JQuery<T>;
 function from(selector: Nullishable<OneOrMany<string | JQuery>>): JQuery;
 function from<T extends Element>(items: Nullishable<OneOrMany<string | JQuery | T>>): JQuery<unknown> {
   if (items == null) {

@@ -1,4 +1,4 @@
-import type { JQueryMutationCallback, JQueryObservation } from '@/types/lib';
+import type { JQueryMutationCallback, JQueryObservation } from '../types/lib.js';
 import { MutationObserverOptions, type MutationObserverOptionsInit, type NodeMutationCallback } from 'builtinx';
 
 declare global {
