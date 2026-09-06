@@ -91,12 +91,117 @@ test('isElement does not need to read an untrusted ownerDocument property', () =
   expect($.isElement(value)).toBe(false);
 });
 
-test('from still rejects non-element collection members', () => {
+test('from still rejects non-node collection members', () => {
   vi.spyOn(console, 'log').mockImplementation(() => {});
   // Invalid inputs intentionally bypass the public type contract.
   const fromUnknown = $.from as (value: unknown) => JQuery;
-  expect(() => fromUnknown([document.createTextNode('text')])).toThrow(TypeError);
+  expect(() => fromUnknown([42])).toThrow(TypeError);
   expect(() => fromUnknown([{ nodeType: 1, tagName: 'DIV', ownerDocument: document }])).toThrow(TypeError);
+});
+
+test.each([
+  ['current document', () => document],
+  ['independent document', () => document.implementation.createHTMLDocument()],
+  ['iframe document', frameDocument],
+] as const)('from accepts all supported Node kinds from %s', (_, createDocument) => {
+  const owner = createDocument();
+  const nodes: Node[] = [
+    owner,
+    owner.createTextNode('text'),
+    owner.createComment('comment'),
+    owner.createDocumentFragment(),
+    owner.implementation.createDocumentType('html', '', ''),
+    owner.createAttribute('title'),
+    owner.createProcessingInstruction('target', 'value'),
+    owner.createElement('div').attachShadow({ mode: 'open' }),
+  ];
+  for (const node of nodes) {
+    expect($.isNode(node), node.nodeName).toBe(true);
+    expect($.from(node).toArray()).toEqual([node]);
+    expect($.from([node]).toArray()).toEqual([node]);
+    const wrapped = $(node);
+    expect($.from(wrapped)).toBe(wrapped);
+    expect($.from([wrapped]).toArray()).toEqual([node]);
+  }
+});
+
+test('from supports XML CDATA nodes without a window', () => {
+  const owner = document.implementation.createDocument(null, 'root');
+  const cdata = owner.createCDATASection('text');
+  expect($.isNode(cdata)).toBe(true);
+  expect($.from(cdata)[0]).toBe(cdata);
+  expect($.from([cdata])[0]).toBe(cdata);
+});
+
+test('from snapshots childNodes and custom array-like mixed Node inputs', () => {
+  const root = document.createElement('div');
+  const text = document.createTextNode('text');
+  const comment = document.createComment('comment');
+  const child = document.createElement('b');
+  root.append(text, comment, child);
+  const snapshot = $.from(root.childNodes);
+  const arrayLike = $.from<Node>({ 0: text, 1: comment, 2: child, length: 3 });
+  expect(snapshot.toArray()).toEqual([text, comment, child]);
+  expect(arrayLike.toArray()).toEqual(snapshot.toArray());
+  root.append('later');
+  expect(snapshot).toHaveLength(3);
+});
+
+test('from preserves typed Text collections and flattens groups mixed with raw Text nodes', () => {
+  const first = $(document.createTextNode('a'));
+  const second = $(document.createTextNode('b'));
+  const same: JQuery<Text> = $.from(first);
+  const grouped: JQuery<Text> = $.from([first, second]);
+  const mixed: JQuery<Text> = $.from([first, second[0]]);
+  expect(same).toBe(first);
+  expect(grouped.toArray()).toEqual([first[0], second[0]]);
+  expect(mixed.toArray()).toEqual(grouped.toArray());
+});
+
+test('from flattens mixed Node collections and deduplicates connected nodes in document order', () => {
+  const root = document.createElement('div');
+  const text = document.createTextNode('text');
+  const comment = document.createComment('comment');
+  const element = document.createElement('span');
+  root.append(text, comment, element);
+  const result = $.from<Node>([$(element), text, $(comment), text]);
+  expect(result.toArray()).toEqual([text, comment, element]);
+});
+
+test('from recognizes adopted Text nodes and nodes retained after removing their iframe', () => {
+  const owner = frameDocument();
+  const text = owner.createTextNode('foreign');
+  const comment = owner.createComment('foreign');
+  document.adoptNode(text);
+  document.querySelector('iframe')!.remove();
+  expect(text instanceof Text).toBe(false);
+  expect($.isNode(text)).toBe(true);
+  expect($.isNode(comment)).toBe(true);
+  expect($.from([text])[0]).toBe(text);
+  expect($.from(comment)[0]).toBe(comment);
+});
+
+test.each([
+  ['null', null],
+  ['undefined', undefined],
+  ['number', 1],
+  ['string', 'text'],
+  ['window', window],
+  ['plain object', {}],
+  ['node-shaped object', { nodeType: 3, nodeName: '#text', ownerDocument: document }],
+  ['inherited Node prototype', Object.create(Node.prototype)],
+] as const)('isNode rejects %s', (_, value) => {
+  expect($.isNode(value)).toBe(false);
+});
+
+test('isNode does not access untrusted nodeType or ownerDocument getters', () => {
+  const getProperty = vi.fn(() => { throw new Error('unexpected access'); });
+  const value = Object.defineProperties({}, {
+    nodeType: { get: getProperty },
+    ownerDocument: { get: getProperty },
+  });
+  expect($.isNode(value)).toBe(false);
+  expect(getProperty).not.toHaveBeenCalled();
 });
 
 test('from preserves existing selector, JQuery and empty-input behavior', () => {
@@ -182,4 +287,15 @@ test('from rewraps another jQuery instance using the shared instance', () => {
   expect(result.isEmpty()).toBe(false);
   expect(result[0]).toBe(foreign[0]);
   expect($.from(otherJQuery<HTMLElement>()).isEmpty()).toBe(true);
+  const foreignText = otherJQuery(owner.createTextNode('foreign text'));
+  const textResult: JQuery<Text> = $.from(foreignText);
+  expect(textResult).not.toBe(foreignText);
+  expect($.isJQuery(textResult)).toBe(true);
+  expect(textResult.toArray()).toEqual([foreignText[0]]);
+});
+
+test('from accepts selector groups mixed with Node collections', () => {
+  const button = $('<button id="from-node-target">').appendTo(document.body)[0];
+  const text = document.createTextNode('text');
+  expect($.from<Node>(['#from-node-target', $(text)]).toArray()).toEqual([button, text]);
 });

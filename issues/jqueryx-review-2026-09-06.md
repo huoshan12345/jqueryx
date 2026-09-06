@@ -140,7 +140,7 @@ Element.querySelectorAll 的选择器可以依赖根元素以外的祖先，但 
 
 修复：接受大小写不敏感的 HTTP(S) 前缀和协议相对地址，使用 new URL(src, el.baseURI) 解析，再按解析后的 protocol 与 host 筛选。保留普通相对路径、查询及片段不改写的既有策略。新增链接与图片的协议相对/大小写协议、同站和未匹配主机、非 HTTP 协议、owner document 基准地址、路径重写、端口/查询/片段及图片备用链接用例。第 9、10 项合计新增 34 项回归测试；315 项测试及完整构建通过。
 
-### 11. [部分修复 2026-09-06，空模板与遍历顺序仍有问题] [P2] textContent 在 template 上的 getter 与 setter 操作不同范围
+### 11. [部分修复 2026-09-06，仅空模板写入问题待修复] [P2] textContent 在 template 上的 getter 与 setter 操作不同范围
 
 位置：[jquery.attr.ts:49](D:/projects/_libraries/jqueryx/src/extensions/jquery.attr.ts:49)。
 
@@ -154,9 +154,9 @@ setter 通过 textNodes 进入 template.content，但 getter 委托 jQuery.text(
 
 剩余问题一：空模板或仅含空 button 的模板调用 textContent('new')，setter 的无文本分支仍向 template 元素自身插入 Text，而 getter 经 contents() 读取 template.content，结果仍为空字符串。应将这类模板的插入目标改为 template.content。
 
-剩余问题二：textNodes() 使用广度优先队列，再通过 jQuery.add 排序。template.content 是独立的 DocumentFragment，无法靠普通 DOM 排序恢复它在外部文本之间的位置。临时探针复现 `<div>a<template>b<span>c</span></template>d</div>` 返回 adbc；模板内容 `a<template>b</template>c` 返回 acb。应明确包含模板内容的遍历顺序，在模板位置深度优先进入其 content，并保留既有去重及普通 DOM 根顺序规则。本次仅复核并补测试，未修改产品源码。
+DFS 复核：用户已将根节点和子节点反序入栈，并先收集 Text 数组再通过 $.from 包装。模板混排 abcd、嵌套模板 abc、普通元素/模板混合集合及原有重叠/倒序根、剪枝和去重测试均通过，相关顺序问题已修复。
 
-后续复核：用户已将队列改为栈，但根节点及子节点仍按正序入栈，导致逆序访问；result.add 仍会重新进行 DOM 排序。现有混合集合测试由 abc 变为 cba；模板混排探针由预期 abcd 得到 dbca，嵌套模板由 abc 得到 cba。需要反序入栈并按遍历顺序收集 Text，最后一次包装为 JQuery；既有普通 DOM 重叠/倒序根的顺序要求也需在输入规范化时保持，不能依赖输出 add 排序。空模板分支仍应将 HTML template 的实际插入目标改为 template.content，并使用该目标的 ownerDocument 创建文本。
+按用户要求，空模板和仅含空 button 的模板已加入两个正式复现测试，断言写入应进入 template.content、可由 getter 读回并保留原子节点；两项当前仍失败。$.from 最低类型由 Element 扩为 Node 后，新增运行时与严格消费者类型用例覆盖 Text、Comment、Document、DocumentFragment、ShadowRoot、Attr、DocumentType、处理指令和 CDATA，以及跨 iframe、收养节点、NodeList/ArrayLike、混合分组、类型推断和伪造 Node 拒绝。全量结果为 338 项通过、仅上述两个已知复现失败，完整构建及 Bundler / NodeNext 消费者检查通过。本次仅添加/调整测试和审查记录，未修改产品源码。
 
 ## 验证与范围
 

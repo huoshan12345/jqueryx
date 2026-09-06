@@ -210,6 +210,44 @@ const invalidButtonGroup: JQuery<HTMLButtonElement> = $.from(typedInputs);
 void [sameInputs, inputGroups, mixedInputs, sameSvg, svgGroups, sameButtonsFrom, emptyFrom,
   emptyArrayFrom, invalidButtonGroup];
 
+const rawText = document.createTextNode('text');
+const rawComment = document.createComment('comment');
+const rawFragment = document.createDocumentFragment();
+const textFrom: JQuery<Text> = $.from(rawText);
+const textArrayFrom: JQuery<Text> = $.from([rawText]);
+const sameTextFrom: JQuery<Text> = $.from(textFrom);
+const textGroupsFrom: JQuery<Text> = $.from([textFrom, textFrom]);
+const mixedTextsFrom: JQuery<Text> = $.from([textFrom, rawText]);
+const commentFrom: JQuery<Comment> = $.from(rawComment);
+const documentFrom: JQuery<Document> = $.from(document);
+const fragmentFrom: JQuery<DocumentFragment> = $.from(rawFragment);
+const attributeFrom: JQuery<Attr> = $.from(document.createAttribute('title'));
+const shadowFrom: JQuery<ShadowRoot> = $.from(document.createElement('div').attachShadow({ mode: 'open' }));
+const childrenFrom: JQuery<ChildNode> = $.from(document.body.childNodes);
+const nodeArrayLike: ArrayLike<Node> = { 0: rawText, 1: rawComment, 2: rawFragment, length: 3 };
+const mixedNodesFrom: JQuery<Node> = $.from(nodeArrayLike);
+const nodeAndSelectorFrom: JQuery<Node> = $.from<Node>(['button', textFrom]);
+const unknownNode: unknown = rawText;
+if ($.isNode(unknownNode)) {
+  const recognized: JQuery<Node> = $.from(unknownNode);
+  // @ts-expect-error Recognizing a Node does not establish that it is an Element.
+  const element: Element = unknownNode;
+  void [recognized, element];
+}
+// @ts-expect-error A Text collection must not be widened to HTMLElement.
+const invalidTextElements: JQuery<HTMLElement> = $.from(textFrom);
+// @ts-expect-error Node support does not include Window.
+$.from(window);
+// @ts-expect-error A plain object is not a Node.
+$.from({ value: 1 });
+// @ts-expect-error Non-node JQuery collections are outside the public contract.
+$.from($({ value: 1 }));
+// @ts-expect-error An inner null is not a Node, even though an outer null means an empty input.
+$.from([rawText, null]);
+void [textFrom, textArrayFrom, sameTextFrom, textGroupsFrom, mixedTextsFrom,
+  commentFrom, documentFrom, fragmentFrom, attributeFrom, shadowFrom, childrenFrom,
+  mixedNodesFrom, nodeAndSelectorFrom, invalidTextElements];
+
 const unknownCollection: unknown = buttons;
 if ($.isJQuery(unknownCollection)) {
   const collection: JQuery<unknown> = unknownCollection;

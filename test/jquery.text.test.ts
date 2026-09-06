@@ -47,6 +47,30 @@ test('textContent reads a collection mixing ordinary elements and templates', ()
   expect(roots.textContent()).toBe('newnewnew');
 });
 
+test.each(['', '<button></button>'])('textContent inserts into template.content when no Text exists: %j', html => {
+  const template = document.createElement('template');
+  template.innerHTML = html;
+  const originalChildren = [...template.content.childNodes];
+  const nodes = $(template);
+
+  expect(nodes.textContent('new')).toBe(nodes);
+  expect(template.content.textContent).toBe('new');
+  expect(nodes.textContent()).toBe('new');
+  expect(template.childNodes).toHaveLength(0);
+  expect([...template.content.childNodes].slice(1)).toEqual(originalChildren);
+});
+
+test('textContent preserves the position of template content within surrounding text', () => {
+  const root = $('<div>a<template>b<span>c</span></template>d</div>');
+  expect(root.textContent()).toBe('abcd');
+});
+
+test('textContent preserves the position of nested template content', () => {
+  const template = document.createElement('template');
+  template.innerHTML = 'a<template>b</template>c';
+  expect($(template).textContent()).toBe('abc');
+});
+
 test('textContent sets each root independently and preserves non-text descendants', () => {
   const nodes = $('<div>a<b>b</b></div><div>c<i>d</i></div>');
   const children = nodes.children().toArray();
