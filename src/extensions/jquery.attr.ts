@@ -8,7 +8,10 @@ declare global {
     targetBlank(this: this & JQuery<Element>, onlyUpdate?: boolean): this;
     /** Reads all descendant text, like jQuery.text(). */
     textContent(this: this & JQuery<Node>): string;
-    /** Sets each root's complete text, replacing descendants, like jQuery.text(value). */
+    /**
+     * Merges each root's descendant text into its first Text node, preserving non-text nodes.
+     * Inserts text at the start of an element or fragment that has no Text nodes.
+     */
     textContent(this: this & JQuery<Node>, value: string): this;
     requiredHref(this: this & JQuery<Element>): string;
     href(this: this & JQuery<Element>): string | undefined;
@@ -51,7 +54,16 @@ function textContent<T extends JQuery<Node>>(this: T, value?: string): T | strin
   }
 
   for (const item of this.enumerate()) {
-    for (const { item: node, isFirst } of item.textNodes().asEnumerable().position()) {
+    const texts = item.textNodes(undefined, [], false);
+    if (texts.isEmpty()) {
+      const root = item[0];
+      if (root.nodeType === Node.ELEMENT_NODE || root.nodeType === Node.DOCUMENT_FRAGMENT_NODE) {
+        const text = root.ownerDocument!.createTextNode(value);
+        root.insertBefore(text, root.firstChild);
+      }
+      continue;
+    }
+    for (const { item: node, isFirst } of texts.asEnumerable().position()) {
       if (isFirst) {
         node.nodeValue = value;
       } else {

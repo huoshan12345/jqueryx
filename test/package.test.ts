@@ -53,8 +53,8 @@ beforeAll(() => {
       moduleResolution: 'Bundler',
       strict: true,
       noEmit: true,
-      // Issue 10 tracks the separate builtinx/dom declaration conflict.
-      skipLibCheck: true,
+      // Check dependency declarations too, including native DOM augmentation compatibility.
+      skipLibCheck: false,
       // jQuery globals must arrive through the package, not ambient @types discovery.
       types: [],
     },

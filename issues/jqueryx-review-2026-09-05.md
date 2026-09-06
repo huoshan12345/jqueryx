@@ -110,13 +110,13 @@ onClick、onKeyDown 和 onEnterDown 保留返回 JQuery 的链式 API，新增�
 
 验证：两个 div 分别含 `a<b>keep</b>` 和 `b<i>keep too</i>`，赋值后第二个 div 的直接文本被删除。`<div><button>keep</button></div>` 的 getter 返回空串，setter 却删除 button。
 
-建议明确两种可理解的契约：完整文本直接使用现有 `.text()`；仅直接文本统一为 `.ownText()`，逐元素设置并保留元素子节点。若保留 textContent 别名，应与其中一种契约完全一致，不能继续保留第三套规则。
+当前用户明确的契约：textContent 读取全部后代文本；setter 逐根合并文本到第一个 Text 节点，删除其余 Text，但保留非文本节点。没有 Text 的元素或 DocumentFragment 在开头插入新文本。ownText 仍仅操作直接文本。
 
-复核用户修改：getter 已改为遍历后代文本，但 setter 仍将整个集合合并写入。回归测试复现两个根元素设置后得到 `['new', '']`，并且是否有文本仍会影响子元素是否被删除。用户随后明确选择逐根设置完整文本、替换子节点（等同 .text(value)）。
+复核用户修改：逐根设置已经成立，且能保留非文本节点；此前按 .text(value) 编写的“删除子元素”测试不符合用户最新确认的意图，已修正。新边界测试进一步发现 textNodes() 默认跳过 a、button 等标签，使写入后仍残留文本（例如得到 newbc）；根节点没有文本时也没有写入。
 
-修复：textContent getter 委托给 .text()，setter 委托给 .text(value)，每个根元素都得到完整的新文本并替换后代。jQuery setter 本身跳过独立 Text 节点，因此额外保留本 API 对 Text.nodeValue 的写入支持。ownText 的直接文本契约保留，其余独立缺陷继续由 issue 13、16 跟踪。
+修复：保留用户逐根设置的实现，遍历文本时明确禁用标签跳过；无文本时使用所属 document 创建 Text，插入元素／fragment 的开头。有文本时原位设置第一个 Text，并删除其余 Text。没有使用 .text(value)，元素身份、嵌套结构、事件、jQuery data 与注释均保留。独立 Text 的写入继续支持；ownText 的其他独立缺陷仍由 issue 13、16 跟踪。
 
-验证：6 项回归测试覆盖后代文本顺序、逐根写入、空子元素与已有文本的一致行为、空字符串、空集合、独立 Text、DocumentFragment、同源 iframe 和与 ownText 的范围区别；消费者运行时测试也验证多根替换行为。
+验证：11 项文本回归测试覆盖后代顺序、逐根写入、无文本插入、空字符串、空集合、独立 Text、DocumentFragment、同源 iframe、a/button、相邻 Text、首个 Text 位于深层的情况，以及非文本节点身份／事件／data／注释的保留。发布包消费者测试也改为断言保留非文本节点。
 
 ### 7. [已修复 2026-09-05] [P2] refineUrls 无条件承担图片备用链接的插入职责
 
@@ -162,31 +162,41 @@ IMG 在验证 URL 和 hosts 之前就加入 images 列表，因此即使完全�
 
 验证：消费者使用独立 tsconfig，关闭 ambient @types 自动发现（types: []），只导入 jqueryx 即可使用 `$`、`jQuery`、`JQuery<HTMLButtonElement>` 和扩展方法；错误的元素泛型赋值仍被拒绝。测试启用 skipLibCheck 以隔离未修复的 issue 10，不表示 builtinx/dom 的声明冲突已解决。
 
-### 10. [P2] 根入口引入的 builtinx/dom 声明与原生 DOM 类型冲突
+### 10. [已修复 2026-09-05] [P2] 根入口引入的 builtinx/dom 声明与原生 DOM 类型冲突
 
 位置：[index.ts:1](../src/index.ts#L1)、[tsconfig.json:7](../tsconfig.json#L7)。
 
-当前 builtinx 0.2.2 为 Element 声明返回 this 类型的 `show`，原生 HTMLDialogElement.show 返回 void，继承关系不兼容。jqueryx 根声明无条件导入 builtinx/dom，将此冲突带给所有消费者；项目的 skipLibCheck 为 true，因此常规检查不报告。
+初次审查时 builtinx 0.2.2 为 Element 声明返回 this 类型的 `show`，原生 HTMLDialogElement.show 返回 void，继承关系不兼容。jqueryx 根声明无条件导入 builtinx/dom，将此冲突带给所有消费者；当时项目的 skipLibCheck 为 true，因此常规检查不报告。
 
 验证：在已明确加载 jquery 基础类型的前提下，使用不跳过声明检查的独立 tsc，仍报 HTMLDialogElement 的 TS2430，以及两个 HTMLElementTagNameMap 的 TS2344。
 
 根因在依赖声明，不能算 jqueryx 自己实现的 DOM 方法缺陷；但它已经影响本包交付。建议修正／升级依赖的冲突 API 或解除该入口的声明依赖，并用消费者配置验证，不应要求消费者打开 skipLibCheck 来掩盖。
 
-### 11. [P2] 仓库没有测试用例，测试命令与 CI 当前直接失败
+复核：package.json、锁文件和已安装包均为 builtinx 0.3.0，peerDependencies 同步为 ^0.3.0。该版本不再增强 Element.show/hide，改为 setVisible，原生 HTMLDialogElement.show 的 void 返回契约不再被覆盖。用户也已从根 tsconfig 移除 skipLibCheck。
+
+验证：显式关闭 skipLibCheck 的整个项目类型检查通过；发布包消费者配置改为 skipLibCheck: false，基础声明及依赖声明完整检查通过，并增加 dialog.show(): void、dialog.setVisible(): HTMLDialogElement 与 SVG setVisible 的回归编译用例。先前为 issue 10 保留的声明检查隔离已取消。
+
+### 11. [已修复 2026-09-05] [P2] 仓库没有测试用例，测试命令与 CI 当前直接失败
 
 位置：[vitest.config.ts:12](../vitest.config.ts#L12)、[test/setupFiles.ts:1](../test/setupFiles.ts#L1)、[build.yml:83](../.github/workflows/build.yml#L83)。
 
-test 目录只有 setupFiles.ts，没有配置所匹配的 `test/**/*.test.ts`。干净基线执行 pnpm test 返回退出码 1：`No test files found`，工作流在发布前无条件执行同一命令。
+初次审查时 test 目录只有 setupFiles.ts，没有配置所匹配的 `test/**/*.test.ts`。当时干净基线执行 pnpm test 返回退出码 1：`No test files found`，工作流在发布前无条件执行同一命令。
 
 建议先补核心行为和消费产物的测试，尤其是 jQuery 实例安装、同步事件取消、文本写入及观察器清理；仅允许无测试通过不能解决缺少验证的问题。
 
-### 12. [P2] PR 检查没有执行类型检查和构建
+复核：现有 7 个 .test.ts 文件覆盖事件、观察、等待、文本、URL、类型相关运行时行为与发布包消费者。当前 pnpm test 执行 114 项测试全部通过，已不存在 No test files found 问题；完整 pnpm build 也通过。此处确认本地结果，未实际运行 GitHub Actions。
+
+### 12. [部分修复 2026-09-05] [P2] PR 检查的构建步骤与触发范围
 
 位置：[build.yml:83](../.github/workflows/build.yml#L83)、[build.yml:86](../.github/workflows/build.yml#L86)。
 
-工作流唯一的 pnpm build 位于 main push 且版本尚未发布的分支；PR 只执行 pnpm test。Vitest 的源码执行不能替代完整类型检查和发布构建，因此补上测试后，入口缺失或错误声明仍可在 PR 中通过，直到发布时才暴露。已发布版本的 main push 也会跳过 build。此外，paths filter 未包含 pnpm-lock.yaml／pnpm-workspace.yaml，单独修改依赖解析或安装配置也会跳过检查。
+初次审查时工作流唯一的 pnpm build 位于 main push 且版本尚未发布的分支；PR 只执行 pnpm test。Vitest 的源码执行不能替代完整类型检查和发布构建，因此补上测试后，入口缺失或错误声明仍可在 PR 中通过，直到发布时才暴露。已发布版本的 main push 也会跳过 build。此外，paths filter 未包含 pnpm-lock.yaml／pnpm-workspace.yaml，单独修改依赖解析或安装配置也会跳过检查。
 
 建议将类型检查、测试、构建作为独立且无条件的验证步骤，发布只消费验证后的产物；把锁文件与 workspace 配置纳入触发范围。
+
+复核：用户新增的 Run build with pnpm 位于发布步骤之前，无步骤级 if 条件；PR 和 main push 只要进入 build job 都会运行。pnpm build 已包含 type-check、Vite 打包和声明生成，本地完整运行通过，因此无需再加一个重复的 type-check 步骤。
+
+剩余：build job 仍由 paths filter 控制，`.github/workflows/build.yml:37-45` 尚未包含 pnpm-lock.yaml 与 pnpm-workspace.yaml；仅修改这两个文件时仍会跳过构建和测试，因此本项暂标记部分修复。建议在该过滤列表加入这两个路径。本次仅复核工作流，未修改用户的 CI 配置；发布分支中的第二次 build 可另行去重，但不属于正确性阻塞。
 
 ## 实现缺陷
 

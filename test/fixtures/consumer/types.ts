@@ -108,3 +108,10 @@ buttons.refineUrls([], new URL('https://example.com'), path => path)[0].disabled
 // @ts-expect-error The fallback flag must be boolean.
 buttons.refineUrls([], new URL('https://example.com'), { addImageFallbackLinks: 'yes' });
 void [matchingButtons, defaultMatches];
+
+// Native dialog methods must remain compatible with builtinx's Element augmentation.
+const dialog = document.createElement('dialog');
+const shown: void = dialog.show();
+const visibleDialog: HTMLDialogElement = dialog.setVisible(true);
+const visibleSvg: SVGSVGElement = svg[0].setVisible(false);
+void [shown, visibleDialog, visibleSvg];

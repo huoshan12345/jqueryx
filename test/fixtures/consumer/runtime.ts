@@ -76,8 +76,10 @@ try {
   assert.equal((await waiting)[0], button.find('span')[0]);
 
   const textRoots = $('<div>a<b>b</b></div><div>c</div>');
+  const preservedChild = textRoots.find('b')[0];
   textRoots.textContent('updated');
-  assert.deepEqual(textRoots.map((_, node) => node.innerHTML).get(), ['updated', 'updated']);
+  assert.deepEqual(textRoots.map((_, node) => node.innerHTML).get(), ['updated<b></b>', 'updated']);
+  assert.equal(textRoots.find('b')[0], preservedChild);
 
   const imageRoot = $('<div><img src="/image.png"></div>');
   imageRoot.find('img').refineUrls([], new URL('https://example.com'), { addImageFallbackLinks: true });
