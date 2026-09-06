@@ -38,6 +38,8 @@ jobs:
               - '**/*.js'
               - '**/*.ts'
               - '**/package.json'
+              - '**/pnpm-lock.yaml'
+              - '**/pnpm-workspace.yaml'
               - '**/src/**'
               - '**/test/**'
               - '**/tsconfig.*.json'
