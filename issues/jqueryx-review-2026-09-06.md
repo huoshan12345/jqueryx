@@ -140,7 +140,7 @@ Element.querySelectorAll 的选择器可以依赖根元素以外的祖先，但 
 
 修复：接受大小写不敏感的 HTTP(S) 前缀和协议相对地址，使用 new URL(src, el.baseURI) 解析，再按解析后的 protocol 与 host 筛选。保留普通相对路径、查询及片段不改写的既有策略。新增链接与图片的协议相对/大小写协议、同站和未匹配主机、非 HTTP 协议、owner document 基准地址、路径重写、端口/查询/片段及图片备用链接用例。第 9、10 项合计新增 34 项回归测试；315 项测试及完整构建通过。
 
-### 11. [P2] textContent 在 template 上的 getter 与 setter 操作不同范围
+### 11. [部分修复 2026-09-06，空模板与遍历顺序仍有问题] [P2] textContent 在 template 上的 getter 与 setter 操作不同范围
 
 位置：[jquery.attr.ts:49](D:/projects/_libraries/jqueryx/src/extensions/jquery.attr.ts:49)。
 
@@ -150,7 +150,11 @@ setter 通过 textNodes 进入 template.content，但 getter 委托 jQuery.text(
 
 建议：明确模板内容是否属于该 API 的文本范围，并让 getter 和 setter 一致。若支持模板，应共享对应的遍历逻辑，同时保持用户要求的非文本节点身份。
 
-复核：临时探针确认当前 jQuery 对 template.innerHTML 创建的模板内容，$(template).text() 和 template.textContent 均为空字符串，$(template.content).text() 才返回内容文本；现有 textContent setter 写入 template.content 后，getter 仍返回空字符串。本次仅核实该行为，未修改第 11 项实现。
+复核：用户已改为通过 textNodes() 获取文本并拼接。新增回归测试确认已有文本的模板、单一路径的嵌套模板及普通元素/模板混合集合可以读取并读回写入值，模板子元素、Text 节点及 jQuery 数据和事件保留。
+
+剩余问题一：空模板或仅含空 button 的模板调用 textContent('new')，setter 的无文本分支仍向 template 元素自身插入 Text，而 getter 经 contents() 读取 template.content，结果仍为空字符串。应将这类模板的插入目标改为 template.content。
+
+剩余问题二：textNodes() 使用广度优先队列，再通过 jQuery.add 排序。template.content 是独立的 DocumentFragment，无法靠普通 DOM 排序恢复它在外部文本之间的位置。临时探针复现 `<div>a<template>b<span>c</span></template>d</div>` 返回 adbc；模板内容 `a<template>b</template>c` 返回 acb。应明确包含模板内容的遍历顺序，在模板位置深度优先进入其 content，并保留既有去重及普通 DOM 根顺序规则。本次仅复核并补测试，未修改产品源码。
 
 ## 验证与范围
 

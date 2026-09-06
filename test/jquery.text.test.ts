@@ -3,6 +3,50 @@ test('textContent reads nested text in document order', () => {
   expect(nodes.textContent()).toBe('abcde');
 });
 
+test('textContent reads and updates populated template content while preserving child identity', () => {
+  const template = document.createElement('template');
+  template.innerHTML = 'a<span>b</span><!--keep-->c';
+  const span = template.content.querySelector('span')!;
+  const comment = template.content.childNodes[2];
+  const firstText = template.content.firstChild;
+  const clicked = vi.fn();
+  $(span).data('value', 42).on('click', clicked);
+  const nodes = $(template);
+
+  expect(nodes.textContent()).toBe('abc');
+  expect(nodes.textContent('new')).toBe(nodes);
+  expect(nodes.textContent()).toBe('new');
+  expect(template.content.textContent).toBe('new');
+  expect([...template.content.childNodes]).toEqual([firstText, span, comment]);
+  expect($(span).data('value')).toBe(42);
+  $(span).triggerHandler('click');
+  expect(clicked).toHaveBeenCalledOnce();
+
+  nodes.textContent('');
+  expect(nodes.textContent()).toBe('');
+  expect(template.content.firstChild).toBe(firstText);
+});
+
+test('textContent reads nested template content and can read back a replacement', () => {
+  const template = document.createElement('template');
+  template.innerHTML = '<template><span>old</span></template>';
+  const nested = template.content.querySelector('template')!;
+  const span = nested.content.querySelector('span')!;
+
+  expect($(template).textContent()).toBe('old');
+  $(template).textContent('new');
+  expect($(template).textContent()).toBe('new');
+  expect(nested.content.querySelector('span')).toBe(span);
+  expect(span.textContent).toBe('new');
+});
+
+test('textContent reads a collection mixing ordinary elements and templates', () => {
+  const roots = $('<div>a</div><template>b</template><div>c</div>');
+  expect(roots.textContent()).toBe('abc');
+  roots.textContent('new');
+  expect(roots.textContent()).toBe('newnewnew');
+});
+
 test('textContent sets each root independently and preserves non-text descendants', () => {
   const nodes = $('<div>a<b>b</b></div><div>c<i>d</i></div>');
   const children = nodes.children().toArray();

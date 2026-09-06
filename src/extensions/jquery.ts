@@ -1,6 +1,6 @@
 import { Enumerable } from 'linqx';
 import type { Nullishable } from 'builtinx';
-import { Queue } from 'builtinx';
+import { Queue, Stack } from 'builtinx';
 
 declare global {
   interface JQuery<TElement = HTMLElement> {
@@ -115,15 +115,15 @@ $.fn.textNodes = function (
   traverseSelector?: string,
   excludeSelectors: readonly string[] = [],
 ): JQuery<Text> {
-  const queue = new Queue<Node>();
+  const stack = new Stack<Node>();
   for (const root of this) {
-    queue.enqueue(root);
+    stack.push(root);
   }
 
   const visited = new Set<Node>();
   let result = $<Text>();
-  while (queue.isNotEmpty()) {
-    const node = queue.dequeue();
+  while (stack.isNotEmpty()) {
+    const node = stack.pop();
     if (visited.has(node)) {
       continue;
     }
@@ -146,7 +146,7 @@ $.fn.textNodes = function (
 
     for (const child of wrappedNode.contents()) {
       if (child.nodeType === Node.ELEMENT_NODE || child.nodeType === Node.TEXT_NODE) {
-        queue.enqueue(child);
+        stack.push(child);
       }
     }
   }
