@@ -7,14 +7,15 @@ declare global {
     scrollToNode(element: string | Element | JQuery<Element>, options?: ScrollIntoViewOptions): void;
     from(selector: Nullishable<OneOrMany<string | JQuery>>): JQuery;
     from<T extends Element>(element: Nullishable<OneOrMany<T>>): JQuery<T>;
-    isJQuery<T extends Element = HTMLElement>(value: unknown): value is JQuery<T>;
+    /** Recognizes collections from the shared jQuery instance; does not validate their contents. */
+    isJQuery(value: unknown): value is JQuery<unknown>;
     /** Recognizes native Elements across realms, including documents without a window. */
     isElement(value: unknown): value is Element;
   }
 }
 
-$.isJQuery = function <T extends Element = HTMLElement>(value: unknown): value is JQuery<T> {
-  return !!value && typeof value === 'object' && 'jquery' in value;
+$.isJQuery = function (value: unknown): value is JQuery<unknown> {
+  return value instanceof $;
 };
 
 const getElementTagName = Object.getOwnPropertyDescriptor(Element.prototype, 'tagName')!.get!;
@@ -61,7 +62,7 @@ $.scrollToNode = function (element: string | Element | JQuery<Element>, options?
 
 function from<T extends Element>(element: Nullishable<OneOrMany<T>>): JQuery<T>;
 function from(selector: Nullishable<OneOrMany<string | JQuery>>): JQuery;
-function from<T extends Element>(items: Nullishable<OneOrMany<string | JQuery | T>>): JQuery | JQuery<T> {
+function from<T extends Element>(items: Nullishable<OneOrMany<string | JQuery | T>>): JQuery<unknown> {
   if (items == null) {
     return $<T>();
   }
@@ -70,7 +71,7 @@ function from<T extends Element>(items: Nullishable<OneOrMany<string | JQuery | 
     return $(items);
   }
 
-  if ($.isJQuery<T>(items)) {
+  if ($.isJQuery(items)) {
     return items;
   }
 
@@ -92,7 +93,7 @@ function from<T extends Element>(items: Nullishable<OneOrMany<string | JQuery | 
 
     if (typeof item === 'string') {
       result = result.add($(item) as any);
-    } else if ($.isJQuery<T>(item)) {
+    } else if ($.isJQuery(item)) {
       result = result.add(item as any);
     } else if ($.isElement(item)) {
       result = result.add($(item) as any);

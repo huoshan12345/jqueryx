@@ -1,3 +1,5 @@
+import { createRequire } from 'node:module';
+
 afterEach(() => {
   document.body.replaceChildren();
 });
@@ -104,4 +106,66 @@ test('from preserves existing selector, JQuery and empty-input behavior', () => 
   expect($.from(null)).toHaveLength(0);
   expect($.from(undefined)).toHaveLength(0);
   expect($.from([])).toHaveLength(0);
+});
+
+test.each([
+  ['empty collection', () => $()],
+  ['elements', () => $('<button>')],
+  ['derived collection', () => $('<div><button></button></div>').find('button')],
+  ['iframe element', () => $(frameDocument().createElement('button'))],
+  ['text node', () => $(document.createTextNode('text'))],
+  ['document', () => $(document)],
+  ['plain object', () => $({ value: 1 })],
+] as const)('isJQuery recognizes a shared-instance %s', (_, createCollection) => {
+  expect($.isJQuery(createCollection())).toBe(true);
+});
+
+test.each([
+  ['null', null],
+  ['undefined', undefined],
+  ['string', 'jquery'],
+  ['number', 1],
+  ['element', document.createElement('div')],
+  ['plain object', {}],
+  ['false marker', { jquery: false }],
+  ['version marker', { jquery: $.fn.jquery }],
+  ['inherited marker', Object.create({ jquery: $.fn.jquery })],
+  ['array-like with marker', { jquery: $.fn.jquery, length: 0 }],
+] as const)('isJQuery rejects %s', (_, value) => {
+  expect($.isJQuery(value)).toBe(false);
+});
+
+test('from rejects marker-only objects directly and inside collections', () => {
+  vi.spyOn(console, 'log').mockImplementation(() => {});
+  const fromUnknown = $.from as (value: unknown) => JQuery;
+  for (const value of [{ jquery: false }, { jquery: $.fn.jquery }]) {
+    expect(() => fromUnknown(value)).toThrow(TypeError);
+    expect(() => fromUnknown([value])).toThrow(TypeError);
+  }
+});
+
+test('from wraps valid array-like inputs even when they have a jquery property', () => {
+  const element = document.createElement('button');
+  const input = { 0: element, length: 1, jquery: $.fn.jquery };
+  const result = $.from(input);
+  expect(result).not.toBe(input);
+  expect($.isJQuery(result)).toBe(true);
+  expect(result.toArray()).toEqual([element]);
+});
+
+test('from rewraps another jQuery instance using the shared instance', () => {
+  const { jQueryFactory } = createRequire(import.meta.url)('jquery/factory') as {
+    jQueryFactory: (window: Window) => JQueryStatic;
+  };
+  const owner = frameDocument();
+  const otherJQuery = jQueryFactory(owner.defaultView!);
+  const foreign = otherJQuery(owner.createElement('button'));
+  expect($.isJQuery(foreign)).toBe(false);
+  expect(foreign.isEmpty).toBeUndefined();
+  const result = $.from(foreign);
+  expect(result).not.toBe(foreign);
+  expect($.isJQuery(result)).toBe(true);
+  expect(result.isEmpty()).toBe(false);
+  expect(result[0]).toBe(foreign[0]);
+  expect($.from(otherJQuery<HTMLElement>()).isEmpty()).toBe(true);
 });

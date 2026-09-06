@@ -316,7 +316,7 @@ getBoundingClientRect().top 相对视口，scroll 的 y 是文档坐标。已滚
 
 本轮第 16–20 项验证：全部 178 项测试通过，包含发布包消费者的严格声明检查；pnpm build 的项目类型检查、Vite 打包和声明生成均通过。
 
-### 21. [P2] isJQuery 将任意含 jquery 属性的对象收窄为完整 JQuery
+### 21. [已修复 2026-09-06] [P2] isJQuery 将任意含 jquery 属性的对象收窄为完整 JQuery
 
 位置：[jquery.static.ts:14](../src/extensions/jquery.static.ts#L14)。
 
@@ -325,6 +325,10 @@ getBoundingClientRect().top 相对视口，scroll 的 y 是文档坐标。已滚
 验证：上述普通对象通过 isJQuery，并被 from 原样返回。
 
 建议在确定第 1 项实例模型后采用一致的实例／结构验证策略。若支持跨实例，至少验证版本标记和需要依赖的关键结构，而不是仅验证同名字段存在。
+
+修复：按共享 jQuery 实例模型，isJQuery 使用 value instanceof $ 判断。当前实例包装的 iframe 元素、Text、Document 和普通对象仍能识别；仅带 jquery 属性的对象不再通过。移除未经验证的元素泛型参数，类型守卫仅收窄为 JQuery<unknown>，不声称已检查集合内容。from 对共享实例保持原集合身份，其他实例的元素集合走现有 ArrayLike 分支，重新包装为具有本包扩展的共享实例集合。
+
+验证：新增 20 项运行时回归测试，修复前其中 7 项失败，修复后全部通过；覆盖空集合、派生集合、不同节点内容、伪造／继承标记、直接与嵌套非法输入、带标记的合法 ArrayLike，以及 iframe 中独立创建的 jQuery 实例。消费者声明测试拒绝未经检查的元素类型和旧泛型调用，发布包运行时验证共享实例识别与原集合身份。全部 198 项测试、严格声明检查及完整 pnpm build 通过。
 
 ## 文档与其余命名检查
 

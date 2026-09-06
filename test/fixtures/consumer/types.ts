@@ -138,3 +138,15 @@ if ($.isElement(unknownElement)) {
 // @ts-expect-error Element input must retain its actual subtype.
 const fromInput: JQuery<HTMLInputElement> = $.from(detachedButton);
 void [fromButton, fromButtons, fromSvg, fromInput];
+
+const unknownCollection: unknown = buttons;
+if ($.isJQuery(unknownCollection)) {
+  const collection: JQuery<unknown> = unknownCollection;
+  const item: unknown = collection[0];
+  collection.toArray();
+  // @ts-expect-error Recognizing jQuery does not establish the element type.
+  const buttonElement: HTMLButtonElement = collection[0];
+  void [item, buttonElement];
+}
+// @ts-expect-error A caller cannot claim an unchecked element type.
+$.isJQuery<HTMLButtonElement>(unknownCollection);

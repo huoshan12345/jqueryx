@@ -47,6 +47,10 @@ try {
   assert.equal(button.consumerPlugin().attr('data-plugin'), 'shared');
   assert.equal(existing.isEmpty(), false);
   assert.equal($(existing[0]).data('owner'), 'host');
+  assert.equal($.isJQuery(existing), true);
+  assert.equal($.from(existing), existing);
+  assert.equal($.isJQuery({ jquery: false }), false);
+  assert.equal($.isJQuery({ jquery: $.fn.jquery }), false);
   assert.ok(BuiltinX === hostHelpers, 'The package must share the host BuiltinX helpers.');
 
   let callbacks = 0;
