@@ -38,7 +38,7 @@
   "devDependencies": {
     "@phiberber/pinst": "^3.0.1",
     "@types/node": "^26.4.1",
-    "builtinx": "^0.3.0",
+    "builtinx": "^0.3.1",
     "jquery": "^4.0.0",
     "linqx": "^0.3.2",
     "npm-run-all2": "^9.0.3",

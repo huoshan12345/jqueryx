@@ -222,7 +222,7 @@ function ownText<T extends JQuery<Node>>(this: T, value?: string): T | string {
   if (value == undefined) {
     const texts: string[] = [];
     for (const element of this) {
-      texts.push(element.ownText());
+      texts.push(BuiltinX.Node.ownText(element));
     }
     return texts.join('');
   }
@@ -273,15 +273,15 @@ $.fn.tapIf = function (condition, action) {
 };
 
 $.fn.collapseBrs = function <T extends JQuery<Element>>(this: T) {
-  this.each((i, e) => { e.collapseBrs(); });
+  this.each((i, e) => { BuiltinX.Element.collapseBrs(e); });
   return this;
 };
 
 $.fn.isNewLineTextNode = function <T extends Node>(this: JQuery<T>): boolean {
-  return this.asEnumerable().all(m => m.isNewLineTextNode());
+  return this.asEnumerable().all(m => BuiltinX.Node.isNewLineTextNode(m));
 };
 
 $.fn.trimLeadingBrs = function <T extends JQuery<Element>>(this: T) {
-  this.each((i, e) => { e.trimLeadingBrs(); });
+  this.each((i, e) => { BuiltinX.Element.trimLeadingBrs(e); });
   return this;
 };
