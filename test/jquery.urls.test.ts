@@ -7,6 +7,67 @@ function imageFixture(src = 'https://remote.example/image.png') {
   return { root, image };
 }
 
+function urlElement(tag: 'a' | 'img', src: string, documentUrl = 'https://origin.example/base/') {
+  const owner = document.implementation.createHTMLDocument();
+  const base = owner.createElement('base');
+  base.href = documentUrl;
+  owner.head.append(base);
+  const element = owner.createElement(tag);
+  element.setAttribute(tag === 'a' ? 'href' : 'src', src);
+  if (tag === 'a') {
+    element.textContent = src;
+  }
+  owner.body.append(element);
+  return $(element);
+}
+
+describe.each(['a', 'img'] as const)('refineUrls on %s', tag => {
+  const attribute = tag === 'a' ? 'href' : 'src';
+
+  test.each([
+    '//remote.example/path?q=1#part',
+    'HTTPS://REMOTE.EXAMPLE/path?q=1#part',
+    'hTtP://remote.example/path?q=1#part',
+  ])('rewrites %s using parsed protocol and host', src => {
+    const node = urlElement(tag, src);
+    const rewrite = vi.fn((path: string) => '/prefix' + path);
+    node.refineUrls(['remote.example'], new URL('https://local.example:8443'), { pathRewrite: rewrite });
+    const expected = 'https://local.example:8443/prefix/path?q=1#part';
+    expect(node.attr(attribute)).toBe(expected);
+    expect(rewrite).toHaveBeenCalledExactlyOnceWith('/path');
+    if (tag === 'a') {
+      expect(node.text()).toBe(expected);
+    }
+  });
+
+  test.each(['/path', '../path', 'path', '?q=1', '#part'])('preserves ordinary relative URL %s even with a matching document base host', src => {
+    const node = urlElement(tag, src, 'https://remote.example/base/');
+    const rewrite = vi.fn((path: string) => path);
+    node.refineUrls(['remote.example'], baseUrl, { pathRewrite: rewrite });
+    expect(node.attr(attribute)).toBe(src);
+    expect(rewrite).not.toHaveBeenCalled();
+  });
+
+  test.each(['//local.example/path', 'HTTPS://LOCAL.EXAMPLE/path', '//other.example/path', 'ftp://remote.example/path', 'mailto:user@remote.example'])('preserves local, unmatched or non-HTTP URL %s', src => {
+    const node = urlElement(tag, src);
+    node.refineUrls(['remote.example', 'local.example'], baseUrl);
+    expect(node.attr(attribute)).toBe(src);
+  });
+});
+
+test('protocol-relative URLs inherit the owner document protocol before filtering', () => {
+  const node = urlElement('a', '//remote.example/path', 'ftp://origin.example/base/');
+  node.refineUrls(['remote.example'], baseUrl);
+  expect(node.attr('href')).toBe('//remote.example/path');
+});
+
+test('image fallback uses the rewritten protocol-relative source', () => {
+  const image = urlElement('img', '//remote.example/image.png');
+  image.refineUrls(['remote.example'], baseUrl, options);
+  expect(image.attr('src')).toBe('https://local.example/image.png');
+  expect(image.next('a').attr('href')).toBe(image.attr('src'));
+});
+
 test('rewrites URLs without adding fallback links by default', () => {
   const { root, image } = imageFixture();
   expect(image.refineUrls(['remote.example'], baseUrl)).toBe(image);

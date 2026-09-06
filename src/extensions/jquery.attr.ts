@@ -50,7 +50,11 @@ function textContent(this: JQuery<Node>): string;
 function textContent<T extends JQuery<Node>>(this: T, value: string): T;
 function textContent<T extends JQuery<Node>>(this: T, value?: string): T | string {
   if (value == undefined) {
-    return this.text();
+    const texts = this.textNodes();
+    return texts
+      .asEnumerable()
+      .select(t => t.nodeValue ?? '')
+      .joinWith('');
   }
 
   for (const item of this.enumerate()) {
@@ -96,7 +100,7 @@ $.fn.voidHref = function <T extends JQuery<Element>>(this: T) {
 };
 
 $.fn.hasUrlHref = function (): boolean {
-  const href = this.prop('href');
+  const href = this.attr('href');
   return !!href && !href.startsWith('javascript:');
 };
 

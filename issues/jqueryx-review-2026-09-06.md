@@ -116,7 +116,7 @@ Element.querySelectorAll 的选择器可以依赖根元素以外的祖先，但 
 
 验证：新增并调整回归测试，覆盖页面内祖先 class、checked property、默认及自定义轮询间隔、超时边界、取消、查询异常、iframe 新增/移除/文档更换及访问权限变化。静态入口不依赖接收对象，包含 documentElement，并且只在游离节点插入页面后匹配；iframe 文档和结果去重。两种加载顺序的发布包运行时用例验证实际定时器等待及旧实例入口已移除；严格 Bundler / NodeNext 消费者声明覆盖静态泛型、pollIntervalMs 类型，并拒绝旧实例调用和 root 选项。281 项测试及完整构建通过。轮询可能漏掉两次查询之间短暂出现又消失的匹配，此限制已写入 API 注释。
 
-### 9. [P2] hasUrlHref 假设所有 Element.href 都是字符串
+### 9. [已修复并验证 2026-09-06] [P2] hasUrlHref 假设所有 Element.href 都是字符串
 
 位置：[jquery.attr.ts:98](D:/projects/_libraries/jqueryx/src/extensions/jquery.attr.ts:98)。
 
@@ -126,7 +126,9 @@ Element.querySelectorAll 的选择器可以依赖根元素以外的祖先，但 
 
 建议：如果该 API 按 href 属性判断，读取 getAttribute / attr；如果仅服务于 HTML 链接，则收紧接收类型并处理非链接输入。不要对未知的 href property 直接调用字符串方法。
 
-### 10. [P2] refineUrls 漏掉协议相对地址和大写协议的远端 URL
+复核：用户已改为 attr('href')，只读取字符串属性。新增空 href 和五组 SVG 锚点回归用例（缺失、空、javascript、相对及 HTTPS），模拟 SVGAnimatedString 形状的 href getter 并确认完全不会访问它。此验证不依赖 jsdom 实现 SVGAnimatedString，也不声称执行了真实浏览器测试。
+
+### 10. [已修复并验证 2026-09-06] [P2] refineUrls 漏掉协议相对地址和大写协议的远端 URL
 
 位置：[jquery.urls.ts:50](D:/projects/_libraries/jqueryx/src/extensions/jquery.urls.ts:50)。
 
@@ -135,6 +137,8 @@ Element.querySelectorAll 的选择器可以依赖根元素以外的祖先，但 
 复现：hosts 包含 remote.example、baseUrl 为 https://local.example，两种 href 调用 refineUrls 后均完全没有变化。
 
 建议：先结合元素所属文档的基准 URL 解析地址，再根据解析后的 protocol 和 host 判断是否改写。协议相对地址需要基准 URL；普通相对链接是否改写则应遵守已有的本站链接策略。
+
+修复：接受大小写不敏感的 HTTP(S) 前缀和协议相对地址，使用 new URL(src, el.baseURI) 解析，再按解析后的 protocol 与 host 筛选。保留普通相对路径、查询及片段不改写的既有策略。新增链接与图片的协议相对/大小写协议、同站和未匹配主机、非 HTTP 协议、owner document 基准地址、路径重写、端口/查询/片段及图片备用链接用例。第 9、10 项合计新增 34 项回归测试；315 项测试及完整构建通过。
 
 ### 11. [P2] textContent 在 template 上的 getter 与 setter 操作不同范围
 
@@ -145,6 +149,8 @@ setter 通过 textNodes 进入 template.content，但 getter 委托 jQuery.text(
 复现：template.innerHTML 为 `<span>old</span>`，调用 `$(template).textContent('new')` 后 template.content.textContent 为 new，但 `$(template).textContent()` 仍返回空字符串。相同 API 的写入结果无法由自己的 getter 读回。
 
 建议：明确模板内容是否属于该 API 的文本范围，并让 getter 和 setter 一致。若支持模板，应共享对应的遍历逻辑，同时保持用户要求的非文本节点身份。
+
+复核：临时探针确认当前 jQuery 对 template.innerHTML 创建的模板内容，$(template).text() 和 template.textContent 均为空字符串，$(template.content).text() 才返回内容文本；现有 textContent setter 写入 template.content 后，getter 仍返回空字符串。本次仅核实该行为，未修改第 11 项实现。
 
 ## 验证与范围
 

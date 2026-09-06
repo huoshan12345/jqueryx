@@ -13,6 +13,8 @@ declare global {
   }
 }
 
+const regExternalLink = /^(?:https?:|\/\/)/i;
+
 $.fn.refineUrls = function <T extends JQuery<Element>>(
   this: T,
   hosts: MatchPattern[],
@@ -42,21 +44,25 @@ $.fn.refineUrls = function <T extends JQuery<Element>>(
         continue;
     }
 
-    const src = $el.attr(attrName);
+    const src = $el.attr(attrName)?.trim();
 
     if (!src)
       continue;
 
-    if (!src.startsWith("http")) // 本站链接
+    // Keep ordinary relative links unchanged; accept explicit HTTP(S) and protocol-relative URLs.
+    if (regExternalLink.test(src) === false)
       continue;
 
     let u: URL;
     try {
-      u = new URL(src);
+      u = new URL(src, el.baseURI);
     } catch (e) {
       console.log('invalid url: ', src);
       continue;
     }
+
+    if (u.protocol !== 'http:' && u.protocol !== 'https:')
+      continue;
 
     if (u.host === baseUrl.host) // 本站链接
       continue;
