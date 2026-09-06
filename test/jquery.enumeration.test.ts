@@ -1,3 +1,12 @@
+test('enumeration preserves Text and SVG node identities', () => {
+  const text = document.createTextNode('text');
+  const svg = document.createElementNS('http://www.w3.org/2000/svg', 'svg');
+  const nodes = $.from<Node>([text, svg]);
+  expect([...nodes.entries()]).toEqual([[0, text], [1, svg]]);
+  expect(nodes.asEnumerable().toArray()).toEqual([text, svg]);
+  expect(nodes.enumerate().select(node => node[0]).toArray()).toEqual([text, svg]);
+});
+
 test('asEnumerable can be counted and enumerated repeatedly', () => {
   const nodes = $([document.createElement('button'), document.createElement('input')]);
   const sequence = nodes.asEnumerable();

@@ -2,9 +2,6 @@ import type { Nullishable, OneOrMany } from 'builtinx';
 
 declare global {
   interface JQueryStatic {
-    search(selector: string, checkIframesIfEmpty?: boolean): JQuery;
-    /** Scrolls the first match into view using its native scrolling containers. Empty matches do nothing. */
-    scrollToNode(element: string | Element | JQuery<Element>, options?: ScrollIntoViewOptions): void;
     from(value: null | undefined): JQuery;
     from<T extends Node>(collection: JQuery<T>): JQuery<T>;
     from<T extends Node = HTMLElement>(elements: Nullishable<OneOrMany<T | JQuery<T>>>): JQuery<T>;
@@ -53,31 +50,6 @@ $.isNode = function (value: unknown): value is Node {
   } catch {
     return false;
   }
-};
-
-$.search = function (selector: string, checkIframesIfEmpty: boolean = true): JQuery {
-  let result = $(selector);
-  if (result.isEmpty() && checkIframesIfEmpty) {
-    result = $('iframe').contents().find(selector);
-  }
-  return result;
-};
-
-$.scrollToNode = function (element: string | Element | JQuery<Element>, options?: ScrollIntoViewOptions) {
-  let node: Element | undefined;
-  if ($.isElement(element)) {
-    node = element;
-  } else if (typeof element === "string") {
-    node = $(element).get(0);
-  } else if (element instanceof jQuery) {
-    node = element.get(0);
-  } else {
-    throw new TypeError('Expected an element, selector, or JQuery collection.');
-  }
-  if (!node) {
-    return;
-  }
-  node.scrollIntoView({ block: 'start', inline: 'nearest', ...options });
 };
 
 function from(value: null | undefined): JQuery;

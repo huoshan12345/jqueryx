@@ -1,3 +1,7 @@
+import { foreignDocument } from './helpers/foreignDocument.js';
+
+afterEach(() => document.body.replaceChildren());
+
 test('textContent reads nested text in document order', () => {
   const nodes = $('<div>a<b>b<i>c</i></b>d</div><div>e</div>');
   expect(nodes.textContent()).toBe('abcde');
@@ -315,4 +319,34 @@ test.each([
   expect([...root.childNodes]).toEqual([firstText, child, comment]);
   expect(child.textContent).toBe('nested');
   expect(comment.nodeValue).toBe('keep');
+});
+
+test('iframe Text nodes support newline checks without foreign prototype extensions', () => {
+  const owner = foreignDocument();
+  const newline = owner.createTextNode(' \n ');
+  expect(newline.isNewLineTextNode).toBeUndefined();
+  expect($(newline).isNewLineTextNode()).toBe(true);
+  expect($(owner.createTextNode('text')).isNewLineTextNode()).toBe(false);
+});
+
+test('iframe elements support collapseBrs, including nested dependency calls', () => {
+  const owner = foreignDocument();
+  const node = owner.createElement('div');
+  node.innerHTML = 'a<br>\n<br><br>b';
+  expect(node.collapseBrs).toBeUndefined();
+  const nodes = $(node);
+  expect(nodes.collapseBrs()).toBe(nodes);
+  expect(node.querySelectorAll('br')).toHaveLength(1);
+});
+
+test('iframe elements support trimLeadingBrs, including newline text nodes', () => {
+  const owner = foreignDocument();
+  const node = owner.createElement('div');
+  node.innerHTML = '\n<br>\n<br><b>keep</b><br>';
+  const child = node.querySelector('b');
+  expect(node.trimLeadingBrs).toBeUndefined();
+  const nodes = $(node);
+  expect(nodes.trimLeadingBrs()).toBe(nodes);
+  expect(node.firstChild).toBe(child);
+  expect(node.querySelectorAll('br')).toHaveLength(1);
 });

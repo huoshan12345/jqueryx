@@ -111,3 +111,9 @@ test('colorHex reads only the first element and also supports SVG and foreign el
     iframe.remove();
   }
 });
+
+test('color and colorHex return undefined for empty collections and permit caller fallbacks', () => {
+  expect($().color()).toBeUndefined();
+  expect($().colorHex()).toBeUndefined();
+  expect($().colorHex() ?? '#000000').toBe('#000000');
+});

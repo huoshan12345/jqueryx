@@ -27,6 +27,8 @@ declare global {
       this: this & JQuery<StyledElement>,
       uppercase?: boolean,
     ): string | undefined;
+    visible(this: this & JQuery<Element>): boolean;
+    visible(this: this & JQuery<Element>, value: boolean): this;
   }
 }
 
@@ -126,3 +128,16 @@ function colorHex(
   return uppercase ? hex.toUpperCase() : hex;
 }
 $.fn.colorHex = colorHex;
+
+function visible(this: JQuery<Element>): boolean;
+function visible<T extends JQuery<Element>>(this: T, value: boolean): T;
+function visible<T extends JQuery<Element>>(this: T, value?: boolean): T | boolean {
+  if (value == undefined) {
+    return this.is(":visible");
+  } else if (value) {
+    return this.show();
+  } else {
+    return this.hide();
+  }
+}
+$.fn.visible = visible;
