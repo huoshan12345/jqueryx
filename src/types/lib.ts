@@ -1,4 +1,4 @@
-import type { Awaitable, HTMLNode, Nullishable } from 'builtinx';
+import type { Awaitable, HTMLNode } from 'builtinx';
 
 export type JQueryNode = JQuery<HTMLNode>;
 export type JQueryMutationCallback<TElement = HTMLElement> = (
@@ -29,6 +29,21 @@ export interface RefineUrlsOptions {
    * is not rewritten. Defaults to false, which removes links previously managed here.
    */
   addImageFallbackLinks?: boolean;
+}
+
+export interface TextNodesOptions {
+  /**
+   * Only descend into elements matching this selector, including root elements.
+   * A non-matching element prunes its entire subtree. Text and fragment/document
+   * roots are not matched against this selector. Omit to traverse every element.
+   */
+  traverseSelector?: string;
+  /**
+   * Matching elements and their entire subtrees are excluded, including roots.
+   * Replaces the default ['a', 'button', 'input', 'iframe']; use [] to exclude none.
+   * Accepts any jQuery element selectors. The caller's array is never modified.
+   */
+  excludeSelectors?: readonly string[];
 }
 
 export interface EventHandlerOptions {

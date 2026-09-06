@@ -342,11 +342,11 @@ README 的包名、徽章、安装和导入示例均为 builtinx，主体描述�
 
 另外已检查其余公开名称、参数和辅助类型，以下是非阻塞的 API 整理建议，不另计问题数：
 
-- `onClick`／`onKeyDown` 的 `e` 实际是 DOM target，不是 event；命名为 `target`，事件参数明确为原生事件或 jQuery 事件，减少使用歧义。
+- [已整理 2026-09-06] `onClick`／`onKeyDown` 的回调参数已使用 `target`、`originalEvent`／`key`。补充说明 target 可为绑定元素的后代、originalEvent 为原生 MouseEvent（jQuery 触发时可能缺省）；内部 currentTarget 变量改名 boundElement，键过滤参数改名 requiredKey。
 - `colorHex(toUpperCase, defaultValue?: string | true)` 用 true 表示返回原始颜色，却仍声明返回 hex 的方法名；建议使用命名选项，明确 alpha、无法转换和空集合的处理。
 - `tryCss`／`tryAddClass` 的 try 表示“有值才执行”，不是捕获失败；应在文档中明确，或使用表达条件赋值的名称。
-- `ClickOptions` 是内部使用的运行时 class，根入口没有公开导出；`JQueryNode`／`JQueryTextInfo` 在本仓库没有实际使用，根入口也没有导出。应决定哪些是真正支持的公共类型，避免留下看似公开但消费者无法正常导入的 API。
-- `textNodes` 的 selector 目前具有“剪枝整个未匹配子树”的含义，skipTags 在 skipAnchor=false 时还会被原地修改。应明确 selector 是匹配入口、遍历节点还是结果，且不要修改调用方传入的配置数组。
+- [已验证 2026-09-06] 用户将根入口改为 export * from './types/lib'，ClickOptions 已能作为运行时类导入，JQueryNode／JQueryTextInfo 等类型也已导出。发布包消费者验证 ClickOptions 的默认值、构造参数覆盖和 onClick 参数类型。
+- [已整理 2026-09-06] 用户确认 textNodes 的 selector 用于剪枝，并已通过复制 skipTags 修复输入数组被修改的问题；修改前以冻结数组验证通过。现改为 textNodes(options?: TextNodesOptions)：traverseSelector 只对元素（包括元素根）判断，未匹配则剪枝；excludeSelectors 支持只读选择器数组，替换默认的 a/button/input/iframe 排除列表，[] 表示不排除。删除冗余 skipAnchor 参数，包含 anchor 可传 ['button', 'input', 'iframe']。保留文档顺序、节点身份及 template 内容遍历；重叠根避免重复遍历；Text／Document／DocumentFragment 根不参与元素选择器匹配。不自动进入 iframe 文档，需显式将其 document 作为根。textContent 的内部调用已迁移，新类型随根入口导出。新增 10 项遍历测试及发布消费者用例，全部 208 项测试、严格类型检查及完整构建通过。
 
 ## 验证记录与覆盖边界
 

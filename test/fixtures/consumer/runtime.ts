@@ -39,6 +39,11 @@ try {
   };
 
   const { button, empty } = application ?? await import('./entry.js');
+  const { ClickOptions } = await import('jqueryx');
+  const clickOptions = new ClickOptions({ preventDefault: false });
+  assert.equal(clickOptions.preventDefault, false);
+  assert.equal(clickOptions.disableWhileProcessing, true);
+  assert.equal(new ClickOptions().preventDefault, true);
 
   assert.ok($ === hostJQuery, 'Global $ must use the host jQuery instance.');
   assert.ok(jQuery === hostJQuery, 'Global jQuery must use the host instance.');
@@ -85,6 +90,10 @@ try {
   textRoots.textContent('updated');
   assert.deepEqual(textRoots.map((_, node) => node.innerHTML).get(), ['updated<b></b>', 'updated']);
   assert.equal(textRoots.find('b')[0], preservedChild);
+  const traversalOptions = Object.freeze({ excludeSelectors: Object.freeze(['button']) });
+  const traversalRoot = $('<div>a<a>b</a><button>c</button></div>');
+  assert.deepEqual(traversalRoot.textNodes(traversalOptions).toArray().map(node => node.data), ['a', 'b']);
+  assert.deepEqual(traversalOptions.excludeSelectors, ['button']);
 
   const imageRoot = $('<div><img src="/image.png"></div>');
   imageRoot.find('img').refineUrls([], new URL('https://example.com'), { addImageFallbackLinks: true });

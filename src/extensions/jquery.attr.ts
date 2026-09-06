@@ -54,7 +54,7 @@ function textContent<T extends JQuery<Node>>(this: T, value?: string): T | strin
   }
 
   for (const item of this.enumerate()) {
-    const texts = item.textNodes(undefined, [], false);
+    const texts = item.textNodes({ excludeSelectors: [] });
     if (texts.isEmpty()) {
       const root = item[0];
       if (root.nodeType === Node.ELEMENT_NODE || root.nodeType === Node.DOCUMENT_FRAGMENT_NODE) {

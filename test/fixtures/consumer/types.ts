@@ -1,4 +1,5 @@
 import 'jqueryx';
+import { ClickOptions, type TextNodesOptions } from 'jqueryx';
 import type { Enumerable } from 'linqx';
 import type { MutationObserverOptionsInit } from 'builtinx';
 import type { WaitForNodesOptions, RefineUrlsOptions } from 'jqueryx';
@@ -7,7 +8,22 @@ const buttons: JQuery<HTMLButtonElement> = $('button');
 const sameButtons: JQuery<HTMLButtonElement> = jQuery('button');
 const empty: boolean = buttons.isEmpty();
 const title: string | undefined = sameButtons.title();
-buttons.title('ready').onClick(element => element.focus());
+buttons.title('ready').onClick(target => target.focus());
+buttons.onClick((target, originalEvent) => {
+  target.focus();
+  const nativeEvent: MouseEvent | undefined = originalEvent;
+  void nativeEvent;
+}, new ClickOptions({ preventDefault: false }));
+const textOptions: TextNodesOptions = {
+  traverseSelector: 'button, span',
+  excludeSelectors: ['.ignore'] as const,
+};
+const collectedTexts: JQuery<Text> = buttons.textNodes(textOptions);
+// @ts-expect-error Text traversal only accepts DOM nodes.
+$({ value: 1 }).textNodes();
+// @ts-expect-error Positional traversal parameters were replaced by named options.
+buttons.textNodes('button', [], false);
+void collectedTexts;
 buttons.onClick(() => buttons.addClass('clicked'), {
   onError: error => String(error),
 });

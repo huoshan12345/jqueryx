@@ -1,6 +1,7 @@
 import { Enumerable } from 'linqx';
 import type { Nullishable } from 'builtinx';
 import { Queue } from 'builtinx';
+import type { TextNodesOptions } from '@/types/lib';
 
 declare global {
   interface JQuery<TElement = HTMLElement> {
@@ -14,12 +15,12 @@ declare global {
       outermost?: boolean,
       includeSelf?: boolean,
     ): JQuery<Element>;
-    textNodes(
-      this: this & JQuery<Node>,
-      selector?: string,
-      skipTags?: string[],
-      skipAnchor?: boolean,
-    ): JQuery<Text>;
+    /**
+     * Collects unique Text nodes in document order using subtree pruning options.
+     * Includes Text roots and template contents, but does not enter iframe documents.
+     * To traverse an iframe document, supply that document as a root explicitly.
+     */
+    textNodes(this: this & JQuery<Node>, options?: TextNodesOptions): JQuery<Text>;
     visible(this: this & JQuery<Element>): boolean;
     visible(this: this & JQuery<Element>, value: boolean): this;
     checked(): boolean;
@@ -96,45 +97,40 @@ $.fn.isNot = function (selector: string): boolean {
   return this.is(selector) === false;
 };
 
-$.fn.textNodes = function (selector?: string, skipTags?: string[], skipAnchor: boolean = true): JQuery<Text> {
-  skipTags ??= [
-    'a',
-    'button',
-    'input',
-    'iframe',
-  ];
-
-  if (skipAnchor === false) {
-    skipTags.remove('a');
-  }
-
+$.fn.textNodes = function (options: TextNodesOptions = {}): JQuery<Text> {
+  const { traverseSelector, excludeSelectors = ['a', 'button', 'input', 'iframe'] } = options;
   const queue = new Queue<Node>();
-  for (const element of this) {
-    queue.enqueue(element);
+  for (const root of this) {
+    queue.enqueue(root);
   }
 
-  let result = $() as JQuery<Text>;
+  const visited = new Set<Node>();
+  let result = $<Text>();
   while (queue.isNotEmpty()) {
     const node = queue.dequeue();
-    const jquery = $(node);
-
-    if (selector && jquery.isNot(selector)) {
+    if (visited.has(node)) {
       continue;
     }
-
-    if (skipTags.some(m => jquery.is(m))) {
-      continue;
-    }
+    visited.add(node);
 
     if (node.nodeType === Node.TEXT_NODE) {
       result = result.add(node as Text);
+      continue;
     }
 
-    for (const node of jquery.contents()) {
-      if (node.nodeType === Node.ELEMENT_NODE) {
-        queue.enqueue(node);
-      } else if (node.nodeType === Node.TEXT_NODE) {
-        result = result.add(node as Text);
+    const wrappedNode = $(node);
+    if (node.nodeType === Node.ELEMENT_NODE) {
+      if (traverseSelector && !wrappedNode.is(traverseSelector)) {
+        continue;
+      }
+      if (excludeSelectors.some(selector => wrappedNode.is(selector))) {
+        continue;
+      }
+    }
+
+    for (const child of wrappedNode.contents()) {
+      if (child.nodeType === Node.ELEMENT_NODE || child.nodeType === Node.TEXT_NODE) {
+        queue.enqueue(child);
       }
     }
   }

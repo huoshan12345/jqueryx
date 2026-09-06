@@ -5,7 +5,9 @@ declare global {
   interface JQuery<TElement = HTMLElement> {
     /**
      * Cancels events synchronously according to options, then invokes the handler.
-     * Processing is guarded per binding and bound element; target remains the clicked node.
+     * Processing is guarded per binding and bound element; target is event.target,
+     * which may be a descendant of the bound element. originalEvent is the native
+     * MouseEvent, or undefined for a jQuery-triggered click.
      * Handler return values are ignored. Errors go to onError, or console.error if omitted.
      */
     onClick(
@@ -14,7 +16,10 @@ declare global {
       options?: Partial<ClickOptions>,
     ): this;
     onClickGotoHref(this: this & JQuery<Element>, openNew?: boolean): this;
-    /** Stops propagation immediately, preserves default behavior, and reports handler errors. */
+    /**
+     * Stops propagation immediately, preserves default behavior, and reports handler errors.
+     * target is event.target (possibly a descendant); key is the event's key value.
+     */
     onKeyDown(
       this: this & JQuery<HTMLElement>,
       handler: (target: HTMLElement, key: string) => Awaitable<unknown>,
@@ -112,13 +117,13 @@ $.fn.onClick = function (
       event.stopImmediatePropagation();
     }
 
-    const element = event.currentTarget;
+    const boundElement = event.currentTarget;
     if (settings.disableWhileProcessing) {
-      if (processingElements.has(element)) {
+      if (processingElements.has(boundElement)) {
         return;
       }
-      processingElements.add(element);
-      disableClickPointerEvents(element);
+      processingElements.add(boundElement);
+      disableClickPointerEvents(boundElement);
     }
 
     void runEventHandler(async () => {
@@ -126,8 +131,8 @@ $.fn.onClick = function (
         await handler(event.target, event.originalEvent);
       } finally {
         if (settings.disableWhileProcessing) {
-          processingElements.delete(element);
-          restoreClickPointerEvents(element);
+          processingElements.delete(boundElement);
+          restoreClickPointerEvents(boundElement);
         }
       }
     }, settings);
@@ -157,10 +162,10 @@ function bindKeyDown<T extends JQuery<HTMLElement>>(
   nodes: T,
   handler: (target: HTMLElement, key: string) => Awaitable<unknown>,
   options?: EventHandlerOptions,
-  key?: string,
+  requiredKey?: string,
 ): T {
   return nodes.on('keydown', event => {
-    if (key !== undefined && event.key !== key) {
+    if (requiredKey !== undefined && event.key !== requiredKey) {
       return;
     }
     event.stopImmediatePropagation();
