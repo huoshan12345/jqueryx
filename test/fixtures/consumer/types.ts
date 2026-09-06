@@ -1,6 +1,7 @@
 import 'jqueryx';
 import { ClickOptions } from 'jqueryx';
 import type { Enumerable } from 'linqx';
+import 'linqx/extensions';
 import type { MutationObserverOptionsInit } from 'builtinx';
 import type { WaitForNodesOptions, RefineUrlsOptions } from 'jqueryx';
 
@@ -51,6 +52,12 @@ buttons.onEnterDown(target => {
 });
 
 const sequence: Enumerable.IEnumerable<HTMLButtonElement> = buttons.asEnumerable();
+const arraySequence: Enumerable.IEnumerable<number> = [1, 2].asEnumerable();
+const mapSequence: Enumerable.IEnumerable<[string, number]> = new Map<string, number>().asEnumerable();
+const nodeSequence: Enumerable.IEnumerable<Node> = document.body.childNodes.asEnumerable();
+// @ts-expect-error Published linqx extensions must preserve their element types.
+const invalidSequence: Enumerable.IEnumerable<string> = [1, 2].asEnumerable();
+void [arraySequence, mapSequence, nodeSequence, invalidSequence];
 const wrapped: Enumerable.IEnumerable<JQuery<HTMLButtonElement>> = buttons.enumerate();
 const observerOptions: MutationObserverOptionsInit = { callOnStart: false, debounce: false };
 buttons.observe(() => {}, observerOptions);

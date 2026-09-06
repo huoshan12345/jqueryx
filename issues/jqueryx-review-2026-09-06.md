@@ -6,7 +6,7 @@
 
 ## 设计与公开 API
 
-### 1. [源码已修复 2026-09-06，待 builtinx 发布] [P2] 发布声明只能在 Bundler 解析下工作，NodeNext 消费者无法加载扩展
+### 1. [已修复并验证已安装依赖 2026-09-06] [P2] 发布声明只能在 Bundler 解析下工作，NodeNext 消费者无法加载扩展
 
 位置：[package.json:30](D:/projects/_libraries/jqueryx/package.json:30)、[index.ts:3](D:/projects/_libraries/jqueryx/src/index.ts:3)。
 
@@ -20,7 +20,7 @@
 
 验证：builtinx 新增生成声明后进行严格 NodeNext 消费检查的回归测试，662 项测试及完整构建通过。jqueryx 的发布包消费者新增 NodeNext 配置；通过 JQUERYX_BUILTINX_PACKAGE_DIR 指向本地 builtinx 构建，236 项测试（含 Bundler / NodeNext 严格声明检查）及完整构建通过。该环境变量只把指定 peer 产物复制到临时消费者，不覆盖 node_modules 中已安装的包。
 
-剩余发布步骤：npm 最新 builtinx 仍为有问题的 0.3.1，需先发布修复版，再升级 jqueryx 的 devDependencies / peerDependencies 和锁文件。当前直接使用已安装 0.3.1 的 NodeNext 消费检查仍失败，不能将本地依赖验证视为 npm 版本已修复。
+依赖升级验证：当前锁文件及实际安装版本为 builtinx 0.3.3、linqx 0.3.4。直接使用已安装依赖、清除 JQUERYX_BUILTINX_PACKAGE_DIR 后，严格 Bundler / NodeNext 消费检查通过；额外覆盖 linqx/extensions 的数组、Map 和 DOM 集合返回类型。peerDependencies 下限同步为 builtinx ^0.3.3、linqx ^0.3.4，避免继续允许已知存在声明问题的旧版本。离线锁文件校验通过，无需变更；pnpm test 的 16 个测试文件、236 项测试全部通过，pnpm build 的类型检查、Vite 构建及声明生成全部通过。
 
 ### 2. [已修复 2026-09-06] [P2] 事件回调的 target 仍被错误承诺为 HTMLElement
 

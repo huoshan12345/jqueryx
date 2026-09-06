@@ -56,8 +56,8 @@
     "@types/jquery": "^4.0.1"
   },
   "peerDependencies": {
-    "builtinx": "^0.3.1",
+    "builtinx": "^0.3.3",
     "jquery": "^4.0.0",
-    "linqx": "^0.3.2"
+    "linqx": "^0.3.4"
   }
 }
