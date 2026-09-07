@@ -14,10 +14,8 @@ The package requires jQuery `^4.0.0`, builtinx `^0.3.3` and linqx `^0.3.4` as sh
 import '@huoshan12345/jqueryx';
 
 const button = $('<button>').title('Save').pointer();
-button.onClick(async target => {
-  if ($.isElement(target)) {
-    target.setAttribute('data-clicked', 'true');
-  }
+button.onClick(async event => {
+  event.currentTarget.setAttribute('data-clicked', 'true');
 });
 ```
 
@@ -249,7 +247,9 @@ $.scrollToNode('#results', { behavior: 'smooth', block: 'center' });
 
 ### `onClick(handler, options?)`
 
-Binds clicks to selected HTML elements and returns `this`. The callback receives `(target: EventTarget, originalEvent?: MouseEvent)` and may return a value or promise. Target is the event origin, possibly a descendant such as SVG; narrow it before accessing element-specific members. `originalEvent` is absent for jQuery-triggered clicks.
+Binds clicks to selected HTML elements and returns `this`. The callback receives one `JQuery.ClickEvent<TElement, undefined, TElement, EventTarget>` and may return a value or promise. `event.currentTarget` is the bound element and retains the collection's element type. `event.target` is the event origin, possibly a descendant such as SVG; narrow it before accessing element-specific members. `event.originalEvent` is absent for jQuery-triggered clicks. Capture `currentTarget` before awaiting if you need it later, as jQuery may reuse the event during bubbling.
+
+Calls using the previous `(target, originalEvent)` callback should read `event.target` and `event.originalEvent` instead.
 
 Cancellation happens synchronously before the callback, even for async handlers. Return values, including false, are ignored. Options accept `Partial<ClickOptions>`:
 
@@ -267,10 +267,9 @@ Different selected elements can run concurrently. Overlapping bindings share poi
 import { ClickOptions } from '@huoshan12345/jqueryx';
 
 const options = new ClickOptions({ stopPropagation: true, onError: error => console.error(error) });
-$('button.save').onClick(async target => {
-  if ($.isElement(target)) {
-    target.setAttribute('data-saved', 'true');
-  }
+$('button.save').onClick(async event => {
+  const button = event.currentTarget;
+  button.setAttribute('data-saved', 'true');
 }, options);
 ```
 

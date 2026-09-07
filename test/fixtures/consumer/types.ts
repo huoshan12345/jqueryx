@@ -27,20 +27,27 @@ const buttons: JQuery<HTMLButtonElement> = $('button');
 const sameButtons: JQuery<HTMLButtonElement> = jQuery('button');
 const empty: boolean = buttons.isEmpty();
 const title: string | undefined = sameButtons.title();
-buttons.title('ready').onClick(target => {
+buttons.title('ready').onClick(event => {
   // @ts-expect-error The event origin may be an SVG node, not an HTMLElement.
-  target.click();
-  if (target instanceof HTMLElement) {
-    target.focus();
+  event.target.click();
+  if (event.target instanceof HTMLElement) {
+    event.target.focus();
   }
 });
-buttons.onClick((target, originalEvent) => {
-  const origin: EventTarget = target;
+buttons.onClick(event => {
+  const origin: EventTarget = event.target;
   // @ts-expect-error A click handler must not assume an HTML event origin.
-  const htmlOrigin: HTMLElement = target;
-  const nativeEvent: MouseEvent | undefined = originalEvent;
-  void [origin, htmlOrigin, nativeEvent];
+  const htmlOrigin: HTMLElement = event.target;
+  const boundButton: HTMLButtonElement = event.currentTarget;
+  const delegateButton: HTMLButtonElement = event.delegateTarget;
+  const nativeEvent: MouseEvent | undefined = event.originalEvent;
+  event.currentTarget.disabled = true;
+  event.preventDefault();
+  event.stopPropagation();
+  void [origin, htmlOrigin, nativeEvent, boundButton, delegateButton];
 }, new ClickOptions({ preventDefault: false }));
+// @ts-expect-error onClick receives one event, not a target and a separate native event.
+buttons.onClick((_target: EventTarget, _originalEvent: MouseEvent | undefined) => {});
 const collectedTexts: JQuery<Text> = buttons.textNodes('button, span', ['.ignore'] as const);
 buttons.textNodes(undefined, ['a']);
 // @ts-expect-error Text traversal only accepts DOM nodes.
