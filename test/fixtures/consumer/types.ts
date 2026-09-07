@@ -277,3 +277,39 @@ if ($.isJQuery(unknownCollection)) {
 }
 // @ts-expect-error A caller cannot claim an unchecked element type.
 $.isJQuery<HTMLButtonElement>(unknownCollection);
+
+// Selector results are independent of the source collection's element type.
+const ancestorForm: JQuery<HTMLFormElement> = buttons.ancestor('form');
+const ancestorSvg: JQuery<SVGSVGElement> = buttons.ancestor('svg', true, true);
+const explicitAncestor: JQuery<HTMLFormElement> = buttons.ancestor<HTMLFormElement>('.container');
+const foundInputs: JQuery<HTMLInputElement> = $(document).search('input');
+const foundCircles: JQuery<SVGCircleElement> = $(document.createDocumentFragment()).search('circle', false);
+const staticInputs: JQuery<HTMLInputElement> = $.search('input');
+const staticCircles: JQuery<SVGCircleElement> = $.search('circle');
+const explicitInputs: JQuery<HTMLInputElement> = buttons.search<HTMLInputElement>('.field');
+const explicitCircles: JQuery<SVGCircleElement> = $.search<SVGCircleElement>('.shape', false);
+const fallbackButtons: JQuery<HTMLButtonElement> = buttons.ifEmpty('button');
+const fallbackInputs: JQuery<HTMLButtonElement | HTMLInputElement> = buttons.ifEmpty('input');
+const fallbackCircles: JQuery<Text | SVGCircleElement> = text.ifEmpty('circle');
+const explicitFallback: JQuery<Text | HTMLInputElement> = text.ifEmpty<HTMLInputElement>('.field');
+// @ts-expect-error Ancestors need not be the same element type as their descendants.
+const ancestorButton: JQuery<HTMLButtonElement> = buttons.ancestor('form');
+// @ts-expect-error Searching a Document returns matching Elements, not Documents.
+const foundDocument: JQuery<Document> = $(document).search('input');
+// @ts-expect-error The source may be returned unchanged, so its type cannot be discarded.
+const fallbackOnlyInput: JQuery<HTMLInputElement> = buttons.ifEmpty('input');
+// @ts-expect-error Selectors cannot return Text nodes.
+buttons.ancestor<Text>('.container');
+// @ts-expect-error Selectors cannot return Text nodes.
+buttons.search<Text>('.field');
+// @ts-expect-error Selectors cannot return Text nodes.
+$.search<Text>('.field');
+// @ts-expect-error A selector fallback cannot return Text nodes.
+text.ifEmpty<Text>('.field');
+// @ts-expect-error Ancestor traversal requires an Element collection.
+text.ancestor('form');
+// @ts-expect-error Searching descendants requires a Node collection.
+$({ value: 1 }).search('input');
+void [ancestorForm, ancestorSvg, explicitAncestor, foundInputs, foundCircles, staticInputs,
+  staticCircles, explicitInputs, explicitCircles, fallbackButtons, fallbackInputs,
+  fallbackCircles, explicitFallback, ancestorButton, foundDocument, fallbackOnlyInput];

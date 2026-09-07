@@ -32,6 +32,29 @@ test('ifEmpty only evaluates its fallback for an empty collection', () => {
   expect(() => $().ifEmpty('[')).toThrow();
 });
 
+test('ifEmpty infers fallback types while preserving the source type and identity', () => {
+  const button = $(document.createElement('button')).appendTo(document.body);
+  const input = $(document.createElement('input')).addClass('field').appendTo(document.body);
+  const sameType = $<HTMLButtonElement>().ifEmpty('button');
+  expectTypeOf(sameType).toEqualTypeOf<JQuery<HTMLButtonElement>>();
+  expect(sameType[0]).toBe(button[0]);
+
+  const differentType = button.ifEmpty('input');
+  expectTypeOf(differentType).toEqualTypeOf<JQuery<HTMLButtonElement | HTMLInputElement>>();
+  expect(differentType).toBe(button);
+  const explicit = $<HTMLButtonElement>().ifEmpty<HTMLInputElement>('.field');
+  expectTypeOf(explicit).toEqualTypeOf<JQuery<HTMLButtonElement | HTMLInputElement>>();
+  expect(explicit[0]).toBe(input[0]);
+
+  const text = $(document.createTextNode('text'));
+  expectTypeOf(text.ifEmpty('circle')).toEqualTypeOf<JQuery<Text | SVGCircleElement>>();
+  expectTypeOf(text.ifEmpty('.field')).toEqualTypeOf<JQuery<Text | HTMLElement>>();
+  const circle = $(document.createElementNS('http://www.w3.org/2000/svg', 'circle')).appendTo(document.body);
+  const svgFallback = $<Text>().ifEmpty('circle');
+  expectTypeOf(svgFallback).toEqualTypeOf<JQuery<Text | SVGCircleElement>>();
+  expect(svgFallback[0]).toBe(circle[0]);
+});
+
 test('where passes each node and original index and only accepts literal true', () => {
   const nodes = $('<i></i><b></b><em></em><span></span>');
   const decisions = [true, false, null, undefined];

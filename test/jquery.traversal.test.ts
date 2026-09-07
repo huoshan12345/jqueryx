@@ -2,6 +2,55 @@ import { foreignDocument } from './helpers/foreignDocument.js';
 
 afterEach(() => document.body.replaceChildren());
 
+test('ancestor infers the matched element type independently of the source', () => {
+  const root = $<HTMLFormElement>(document.createElement('form')).addClass('container');
+  const child = $(document.createElement('input')).appendTo(root);
+  const ancestor = child.ancestor('form');
+  expectTypeOf(ancestor).toEqualTypeOf<JQuery<HTMLFormElement>>();
+  expect(ancestor[0]).toBe(root[0]);
+  const explicit = child.ancestor<HTMLFormElement>('.container', true, false);
+  expectTypeOf(explicit).toEqualTypeOf<JQuery<HTMLFormElement>>();
+  expect(explicit[0]).toBe(root[0]);
+
+  const svg = $(document.createElementNS('http://www.w3.org/2000/svg', 'svg'));
+  expectTypeOf(svg.ancestor('svg', true, true)).toEqualTypeOf<JQuery<SVGSVGElement>>();
+  expectTypeOf($<Element>().ancestor('*')).toEqualTypeOf<JQuery<HTMLElement>>();
+  expectTypeOf($().ancestor('div')).toEqualTypeOf<JQuery<HTMLDivElement>>();
+});
+
+test('search infers HTML and SVG matches from element, document and fragment roots', () => {
+  const form = $<HTMLFormElement>(document.createElement('form')).appendTo(document.body);
+  const input = $(document.createElement('input')).addClass('field').appendTo(form);
+  const matches = form.search('input', false);
+  expectTypeOf(matches).toEqualTypeOf<JQuery<HTMLInputElement>>();
+  expect(matches[0]).toBe(input[0]);
+  expectTypeOf($(document).search('input')).toEqualTypeOf<JQuery<HTMLInputElement>>();
+  expectTypeOf($.search('input')).toEqualTypeOf<JQuery<HTMLInputElement>>();
+  expectTypeOf(form.search<HTMLInputElement>('.field')).toEqualTypeOf<JQuery<HTMLInputElement>>();
+  expectTypeOf($.search<HTMLInputElement>('.field', false)).toEqualTypeOf<JQuery<HTMLInputElement>>();
+  expectTypeOf(form.search('.field')).toEqualTypeOf<JQuery<HTMLElement>>();
+  expectTypeOf($.search('.field')).toEqualTypeOf<JQuery<HTMLElement>>();
+
+  const fragment = $(document.createDocumentFragment());
+  const circle = $(document.createElementNS('http://www.w3.org/2000/svg', 'circle')).appendTo(fragment[0]);
+  const circles = fragment.search('circle');
+  expectTypeOf(circles).toEqualTypeOf<JQuery<SVGCircleElement>>();
+  expect(circles[0]).toBe(circle[0]);
+  expectTypeOf($.search('circle')).toEqualTypeOf<JQuery<SVGCircleElement>>();
+});
+
+test('typed search retains matches when falling back to iframe contents', () => {
+  const owner = foreignDocument();
+  const input = owner.createElement('input');
+  input.className = 'field';
+  owner.body.append(input);
+  const matches = $.search('input');
+  expectTypeOf(matches).toEqualTypeOf<JQuery<HTMLInputElement>>();
+  expect(matches[0]).toBe(input);
+  expect($(document).search<HTMLInputElement>('.field')[0]).toBe(input);
+  expect($.search('input', false)).toHaveLength(0);
+});
+
 test.each([
   [false, false, 'middle'], [true, false, 'outer'],
   [false, true, 'inner'], [true, true, 'outer'],
