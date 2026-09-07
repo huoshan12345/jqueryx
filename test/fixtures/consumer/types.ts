@@ -306,10 +306,17 @@ buttons.search<Text>('.field');
 $.search<Text>('.field');
 // @ts-expect-error A selector fallback cannot return Text nodes.
 text.ifEmpty<Text>('.field');
-// @ts-expect-error Ancestor traversal requires an Element collection.
-text.ancestor('form');
+const textAncestor: JQuery<HTMLFormElement> = text.ancestor('form');
+const nodeAncestors: JQuery<HTMLFormElement> = mixedNodesFrom.ancestor('form');
+const nodeSvgAncestors: JQuery<SVGSVGElement> = mixedNodesFrom.ancestor('svg', true, true);
+const nodeExplicitAncestors: JQuery<HTMLFormElement> = mixedNodesFrom.ancestor<HTMLFormElement>('.container');
+// @ts-expect-error Ancestor traversal requires a Node collection.
+$({ value: 1 }).ancestor('form');
+// @ts-expect-error Window is not a Node.
+$(window).ancestor('form');
 // @ts-expect-error Searching descendants requires a Node collection.
 $({ value: 1 }).search('input');
 void [ancestorForm, ancestorSvg, explicitAncestor, foundInputs, foundCircles, staticInputs,
   staticCircles, explicitInputs, explicitCircles, fallbackButtons, fallbackInputs,
-  fallbackCircles, explicitFallback, ancestorButton, foundDocument, fallbackOnlyInput];
+  fallbackCircles, explicitFallback, ancestorButton, foundDocument, fallbackOnlyInput,
+  textAncestor, nodeAncestors, nodeSvgAncestors, nodeExplicitAncestors];

@@ -1,28 +1,28 @@
 declare global {
   interface JQuery<TElement = HTMLElement> {
     /**
-     * Finds a matching ancestor for each element and combines results with jQuery.add.
+     * Finds a matching Element ancestor for each Node and combines results with jQuery.add.
      * @param selector A jQuery selector to match against ancestors.
      * @param outermost Selects the farthest match instead of the nearest; defaults to false.
-     * @param includeSelf Considers each selected element before its parents; defaults to false.
+     * @param includeSelf Considers each selected Element before its parents; other Nodes start at their parent. Defaults to false.
      * @returns Matching ancestors, deduplicated and sorted by jQuery; empty when none match.
      */
     ancestor<K extends keyof HTMLElementTagNameMap>(
-      this: this & JQuery<Element>,
+      this: this & JQuery<Node>,
       selector: K,
       outermost?: boolean,
       includeSelf?: boolean,
     ): JQuery<HTMLElementTagNameMap[K]>;
     /** Finds matching SVG ancestors, inferring their type from the tag name. */
     ancestor<K extends keyof SVGElementTagNameMap>(
-      this: this & JQuery<Element>,
+      this: this & JQuery<Node>,
       selector: K,
       outermost?: boolean,
       includeSelf?: boolean,
     ): JQuery<SVGElementTagNameMap[K]>;
     /** Finds matching ancestors; an explicit TMatch must describe the selector's results. */
     ancestor<TMatch extends Element = HTMLElement>(
-      this: this & JQuery<Element>,
+      this: this & JQuery<Node>,
       selector: string,
       outermost?: boolean,
       includeSelf?: boolean,
@@ -67,7 +67,7 @@ declare global {
 }
 
 $.fn.ancestor = function <TMatch extends Element = HTMLElement>(
-  this: JQuery<Element>,
+  this: JQuery<Node>,
   selector: string,
   outermost = false,
   includeSelf = false,
@@ -79,11 +79,10 @@ $.fn.ancestor = function <TMatch extends Element = HTMLElement>(
   });
   return result as JQuery<TMatch>;
 
-  function findAncestor(e: Element, outermost: boolean, includeSelf: boolean) {
-    const node = $(e);
-    let p = includeSelf
-      ? node
-      : node.parent();
+  function findAncestor(e: Node, outermost: boolean, includeSelf: boolean) {
+    let p = includeSelf && $.isElement(e)
+      ? $(e)
+      : $(e).parent<Element>();
 
     let result = $<Element>();
     while (p.isNotEmpty()) {

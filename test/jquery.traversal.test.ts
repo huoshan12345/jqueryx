@@ -18,6 +18,47 @@ test('ancestor infers the matched element type independently of the source', () 
   expectTypeOf($().ancestor('div')).toEqualTypeOf<JQuery<HTMLDivElement>>();
 });
 
+test.each([
+  [false, false], [false, true], [true, false], [true, true],
+] as const)('ancestor accepts mixed Nodes with outermost=%s includeSelf=%s', (outermost, includeSelf) => {
+  const outer = document.createElement('div');
+  const inner = document.createElement('div');
+  const text = document.createTextNode('text');
+  const comment = document.createComment('comment');
+  outer.append(inner);
+  inner.append(text, comment);
+  const nodes: JQuery<Node> = $.from<Node>([text, comment]);
+  const matches = nodes.ancestor('div', outermost, includeSelf);
+  expectTypeOf(matches).toEqualTypeOf<JQuery<HTMLDivElement>>();
+  expect(matches.toArray()).toEqual([outermost ? outer : inner]);
+  expect($(text).ancestor('*', outermost, includeSelf).toArray()).toEqual([outermost ? outer : inner]);
+});
+
+test('ancestor accepts broadly typed Elements and Text inside a foreign SVG', () => {
+  const owner = foreignDocument();
+  const svg = owner.createElementNS('http://www.w3.org/2000/svg', 'svg');
+  const text = owner.createTextNode('text');
+  svg.append(text);
+  const nodes: JQuery<Node> = $.from<Node>([svg, text]);
+  const matches = nodes.ancestor('svg', false, true);
+  expectTypeOf(matches).toEqualTypeOf<JQuery<SVGSVGElement>>();
+  expect(matches.toArray()).toEqual([svg]);
+  const explicit = nodes.ancestor<SVGSVGElement>('svg', false, true);
+  expectTypeOf(explicit).toEqualTypeOf<JQuery<SVGSVGElement>>();
+  expect(explicit.toArray()).toEqual([svg]);
+});
+
+test.each([false, true])('ancestor returns empty for Nodes without Element ancestors, includeSelf=%s', includeSelf => {
+  const fragment = document.createDocumentFragment();
+  const text = document.createTextNode('fragment child');
+  fragment.append(text);
+  const nodes = $.from<Node>([
+    document, fragment, text, document.createTextNode('detached'), document.createComment('detached'),
+  ]);
+  expect(nodes.ancestor('*', true, includeSelf)).toHaveLength(0);
+  expect($<Node>().ancestor('*', false, includeSelf)).toHaveLength(0);
+});
+
 test('search infers HTML and SVG matches from element, document and fragment roots', () => {
   const form = $<HTMLFormElement>(document.createElement('form')).appendTo(document.body);
   const input = $(document.createElement('input')).addClass('field').appendTo(form);
