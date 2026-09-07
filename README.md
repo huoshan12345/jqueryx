@@ -217,8 +217,8 @@ All style setters affect every selected element and return `this`.
 | `inlineBlock()` | Sets `display: inline-block`. |
 | `flexWrap(value = 'wrap')` | Sets flex-wrap without changing display. |
 | `padding(value)` | Sets padding via jQuery css; accepts a CSS string or a number in pixels. |
-| `cssImportant(propertyName, value)` | Sets a CSS property (such as `background-color` or `--gap`) to a string with `!important`. Include units where needed. `''` removes it; non-string values throw TypeError. |
-| `cssIfNotEmpty(propertyName, value?)` | Calls jQuery css for nonempty strings. Skips undefined/`''`; applies `'0'`. Does not catch errors. |
+| `cssImportant(propertyName, value)` | Sets a CSS property (such as `background-color` or `--gap`) with `!important`. Accepts a CSS string with units where needed, or numeric `0`. `''` removes it. Values are converted to strings and passed directly to the browser without runtime validation. |
+| `cssIfNotEmpty(propertyName, value?)` | Accepts the same string, number, or callback value as jQuery css. Skips directly supplied undefined/`''`; applies numeric `0`. Callbacks retain jQuery behavior, including clearing with `''` and skipping with undefined. Does not catch errors. |
 | `addClassIfNotEmpty(classNames?)` | Calls jQuery addClass for a nonempty string or string array. Skips undefined, `''`, `[]`; does not catch errors. |
 | `color()` | First computed color string, or undefined for an empty collection. |
 | `color(value, important = false)` | Sets color via jQuery css, or cssImportant when requested. `''` clears inline color. |
@@ -228,7 +228,7 @@ All style setters affect every selected element and return `this`.
 
 ```ts
 const panel = $('<div>').flex().flexWrap().padding(12).visible(true);
-panel.cssImportant('--gap', '1rem').cssIfNotEmpty('opacity', '0.8');
+panel.cssImportant('--gap', '1rem').cssImportant('padding', 0).cssIfNotEmpty('opacity', 0.8);
 panel.addClassIfNotEmpty(['panel', 'ready']).color('rgba(255, 0, 0, 0.5)');
 console.log(panel.colorHex(true)); // '#FF000080'
 const label = $('<span>').inlineBlock().underline().pointer();

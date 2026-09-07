@@ -107,6 +107,20 @@ const replacement: JQuery<HTMLInputElement> = buttons.replaceBy((nodes, index) =
   return $(document.createElement('input'));
 });
 buttons.cssImportant('padding', '20px');
+buttons.cssImportant('padding', 0)[0].disabled = true;
+buttons.cssIfNotEmpty('padding', 12).cssIfNotEmpty('opacity', 0)[0].disabled = true;
+buttons.cssIfNotEmpty('padding', function (index, value) {
+  const button: HTMLButtonElement = this;
+  const position: number = index;
+  const previousValue: string = value;
+  void [button, position, previousValue];
+  return index === 0 ? 0 : undefined;
+})[0].disabled = true;
+buttons.cssIfNotEmpty('padding', function () { this.disabled = true; });
+// @ts-expect-error jQuery css does not accept boolean values.
+buttons.cssIfNotEmpty('padding', false);
+// @ts-expect-error jQuery css callbacks cannot return boolean values.
+buttons.cssIfNotEmpty('padding', () => false);
 // @ts-expect-error CSS values must include their units explicitly where needed.
 buttons.cssImportant('padding', 20);
 // @ts-expect-error The abbreviated method was renamed.
@@ -166,6 +180,11 @@ buttons.tryAddClass('ready');
 // @ts-expect-error Text nodes do not have a CSS color.
 text.colorHex();
 svg.cssIfNotEmpty('fill', 'red').addClassIfNotEmpty(['ready'])[0].viewBox;
+svg.cssIfNotEmpty('opacity', function () {
+  const element: SVGSVGElement = this;
+  void element;
+  return 0;
+}).cssImportant('stroke-width', 0)[0].viewBox;
 void [replacement, svgNodes, htmlNodes, withFallback, onlyText, optionalColor, requiredColor,
   optionalHex, requiredHex, fallbackHex];
 

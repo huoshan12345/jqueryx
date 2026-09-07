@@ -1,4 +1,8 @@
 type StyledElement = Element & ElementCSSInlineStyle;
+type CssValue<TElement> =
+  | string
+  | number
+  | ((this: TElement, index: number, value: string) => string | number | void | undefined);
 
 declare global {
   interface JQuery<TElement = HTMLElement> {
@@ -14,10 +18,10 @@ declare global {
     inlineBlock(this: this & JQuery<StyledElement>): this;
     /** Sets display: inline-flex on every element and returns this. */
     inlineFlex(this: this & JQuery<StyledElement>): this;
-    /** Sets a CSS property with !important. Use a CSS property name and an explicit CSS value, including units. */
-    cssImportant(this: this & JQuery<StyledElement>, propertyName: string, value: string): this;
-    /** Sets CSS unless value is undefined or an empty string. Does not catch errors. */
-    cssIfNotEmpty(this: this & JQuery<StyledElement>, propertyName: string, value?: string): this;
+    /** Sets a CSS property with !important. Accepts numeric zero or a CSS string with units where needed. */
+    cssImportant(this: this & JQuery<StyledElement>, propertyName: string, value: string | 0): this;
+    /** Skips undefined and empty strings; otherwise forwards the value or callback to jQuery.css. */
+    cssIfNotEmpty(this: this & JQuery<StyledElement>, propertyName: string, value?: CssValue<TElement>): this;
     /** Adds classes unless the input is undefined or empty. Does not catch errors. */
     addClassIfNotEmpty(this: this & JQuery<Element>, classNames?: string | string[]): this;
     /** Sets padding on every element via jQuery.css; numeric values use px. Returns this. */
@@ -70,16 +74,17 @@ $.fn.inlineBlock = function <T extends JQuery<StyledElement>>(this: T) {
 $.fn.cssImportant = function <T extends JQuery<StyledElement>>(
   this: T,
   propertyName: string,
-  value: string,
+  value: string | 0,
 ) {
-  if (typeof value !== 'string') {
-    throw new TypeError('cssImportant requires a CSS string value with explicit units where needed.');
-  }
-  return this.each((i, e) => e.style.setProperty(propertyName, value, 'important'));
+  return this.each((i, e) => e.style.setProperty(propertyName, String(value), 'important'));
 };
 
-$.fn.cssIfNotEmpty = function <T extends JQuery<StyledElement>>(this: T, propertyName: string, value?: string) {
-  if (value) {
+$.fn.cssIfNotEmpty = function <T extends JQuery<StyledElement>>(
+  this: T,
+  propertyName: string,
+  value?: CssValue<T[number]>,
+) {
+  if (value !== undefined && value !== '') {
     this.css(propertyName, value);
   }
   return this;
