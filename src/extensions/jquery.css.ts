@@ -41,7 +41,7 @@ declare global {
       uppercase?: boolean,
     ): string | undefined;
     /** Returns whether any element matches jQuery :visible (has a layout box); false for an empty collection. */
-    visible(this: this & JQuery<Element>): boolean;
+    visible(this: this): boolean;
     /** Shows or hides every element via jQuery.show/hide and returns this; does not override hidden ancestors. */
     visible(this: this & JQuery<Element>, value: boolean): this;
   }
@@ -145,7 +145,7 @@ function colorHex(
 }
 $.fn.colorHex = colorHex;
 
-function visible(this: JQuery<Element>): boolean;
+function visible(this: JQuery<unknown>): boolean;
 function visible<T extends JQuery<Element>>(this: T, value: boolean): T;
 function visible<T extends JQuery<Element>>(this: T, value?: boolean): T | boolean {
   if (value == undefined) {

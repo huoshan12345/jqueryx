@@ -296,13 +296,36 @@ const unknownCollection: unknown = buttons;
 if ($.isJQuery(unknownCollection)) {
   const collection: JQuery<unknown> = unknownCollection;
   const item: unknown = collection[0];
+  const isVisible: boolean = collection.visible();
+  // @ts-expect-error An unknown collection may not contain Elements to show or hide.
+  collection.visible(true);
   collection.toArray();
   // @ts-expect-error Recognizing jQuery does not establish the element type.
   const buttonElement: HTMLButtonElement = collection[0];
-  void [item, buttonElement];
+  void [item, buttonElement, isVisible];
 }
 // @ts-expect-error A caller cannot claim an unchecked element type.
 $.isJQuery<HTMLButtonElement>(unknownCollection);
+
+const textVisibility: boolean = text.visible();
+const nodeVisibility: boolean = mixedNodesFrom.visible();
+const documentVisibility: boolean = $(document).visible();
+const fragmentVisibility: boolean = $(document.createDocumentFragment()).visible();
+const windowVisibility: boolean = $(window).visible();
+const objectVisibility: boolean = $({ value: 1 }).visible();
+const visibleButtons: JQuery<HTMLButtonElement> = buttons.visible(true);
+// @ts-expect-error Text supports the visibility getter, but not the setter.
+text.visible(false);
+// @ts-expect-error A Node collection may contain non-Elements.
+mixedNodesFrom.visible(true);
+// @ts-expect-error Documents cannot be shown or hidden.
+$(document).visible(false);
+// @ts-expect-error Window supports the getter, but not the setter.
+$(window).visible(true);
+// @ts-expect-error Plain objects support the getter, but not the setter.
+$({ value: 1 }).visible(false);
+void [textVisibility, nodeVisibility, documentVisibility, fragmentVisibility,
+  windowVisibility, objectVisibility, visibleButtons];
 
 // Selector results are independent of the source collection's element type.
 const ancestorForm: JQuery<HTMLFormElement> = buttons.ancestor('form');

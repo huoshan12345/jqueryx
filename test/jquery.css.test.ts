@@ -60,6 +60,40 @@ test('visible reads whether any element has a layout box and returns false for e
   expect($().visible()).toBe(false);
 });
 
+test.each([
+  ['Text', () => $(document.createTextNode('text'))],
+  ['Comment', () => $(document.createComment('comment'))],
+  ['Document', () => $(document)],
+  ['DocumentFragment', () => $(document.createDocumentFragment())],
+  ['Window', () => $(window)],
+  ['plain object', () => $({ value: 1 })],
+  ['unknown empty collection', () => $<unknown>()],
+] as const)('visible returns false for %s without requiring Elements', (_name, createCollection) => {
+  const nodes = createCollection();
+  expectTypeOf(nodes.visible()).toEqualTypeOf<boolean>();
+  expect(nodes.visible()).toBe(false);
+});
+
+test.each([false, true])('visible checks Elements in a mixed Node collection, elementFirst=%s', elementFirst => {
+  const text = document.createTextNode('text');
+  const element = document.createElement('div');
+  const comment = document.createComment('comment');
+  const nodes = $.from<Node>(elementFirst ? [element, text, comment] : [text, comment, element]);
+  expect(nodes.visible()).toBe(false);
+
+  Object.defineProperty(element, 'offsetWidth', { configurable: true, value: 20 });
+  expect(nodes.visible()).toBe(true);
+  expect(nodes.where(node => node !== element).visible()).toBe(false);
+  expect(nodes.toArray()).toEqual(elementFirst ? [element, text, comment] : [text, comment, element]);
+});
+
+test('visible accepts an unknown collection containing a visible Element', () => {
+  const element = document.createElement('div');
+  Object.defineProperty(element, 'offsetHeight', { configurable: true, value: 20 });
+  const nodes: JQuery<unknown> = $(element);
+  expect(nodes.visible()).toBe(true);
+});
+
 test('cssImportant sets explicit CSS lengths and priority', () => {
   const nodes = $('<div>').padding(12);
   expect(nodes.cssImportant('padding', '20px')).toBe(nodes);
