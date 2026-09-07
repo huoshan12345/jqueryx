@@ -60,6 +60,40 @@ test('visible reads whether any element has a layout box and returns false for e
   expect($().visible()).toBe(false);
 });
 
+test.each([
+  ['Text', () => $(document.createTextNode('text'))],
+  ['Comment', () => $(document.createComment('comment'))],
+  ['Document', () => $(document)],
+  ['DocumentFragment', () => $(document.createDocumentFragment())],
+  ['Window', () => $(window)],
+  ['plain object', () => $({ value: 1 })],
+  ['unknown empty collection', () => $<unknown>()],
+] as const)('visible returns false for %s without requiring Elements', (_name, createCollection) => {
+  const nodes = createCollection();
+  expectTypeOf(nodes.visible()).toEqualTypeOf<boolean>();
+  expect(nodes.visible()).toBe(false);
+});
+
+test.each([false, true])('visible checks Elements in a mixed Node collection, elementFirst=%s', elementFirst => {
+  const text = document.createTextNode('text');
+  const element = document.createElement('div');
+  const comment = document.createComment('comment');
+  const nodes = $.from<Node>(elementFirst ? [element, text, comment] : [text, comment, element]);
+  expect(nodes.visible()).toBe(false);
+
+  Object.defineProperty(element, 'offsetWidth', { configurable: true, value: 20 });
+  expect(nodes.visible()).toBe(true);
+  expect(nodes.where(node => node !== element).visible()).toBe(false);
+  expect(nodes.toArray()).toEqual(elementFirst ? [element, text, comment] : [text, comment, element]);
+});
+
+test('visible accepts an unknown collection containing a visible Element', () => {
+  const element = document.createElement('div');
+  Object.defineProperty(element, 'offsetHeight', { configurable: true, value: 20 });
+  const nodes: JQuery<unknown> = $(element);
+  expect(nodes.visible()).toBe(true);
+});
+
 test('cssImportant sets explicit CSS lengths and priority', () => {
   const nodes = $('<div>').padding(12);
   expect(nodes.cssImportant('padding', '20px')).toBe(nodes);
@@ -75,10 +109,16 @@ test('cssImportant supports unitless properties and custom properties', () => {
   expect(nodes[0].style.getPropertyPriority('--gap')).toBe('important');
 });
 
-test('cssImportant rejects numeric input without changing existing styles', () => {
-  const nodes = $('<div>').padding(12);
-  expect(() => nodes.cssImportant('padding', 20 as unknown as string)).toThrow(TypeError);
-  expect(nodes[0].style.padding).toBe('12px');
+test.each([
+  ['padding', '0px'], ['opacity', '0'], ['--gap', '0'],
+] as const)('cssImportant accepts numeric zero for %s', (property, expected) => {
+  const nodes = $('<div></div><div></div>');
+  expect(nodes.cssImportant(property, 0)).toBe(nodes);
+  for (const node of nodes) {
+    expect(node.style.getPropertyValue(property)).toBe(expected);
+    expect(node.style.getPropertyPriority(property)).toBe('important');
+  }
+  expect($().cssImportant(property, 0)).toHaveLength(0);
 });
 
 test('cssImportant applies to all elements and permits clearing a property', () => {
@@ -109,6 +149,28 @@ test('cssIfNotEmpty preserves styles for empty values and applies nonempty value
   nodes.cssIfNotEmpty('opacity', '0');
   expect(nodes[0].style.opacity).toBe('0');
   expect($().cssIfNotEmpty('color', 'red')).toHaveLength(0);
+});
+
+test.each([
+  ['padding', 12, '12px'], ['padding', 0, '0px'], ['opacity', 0, '0'], ['opacity', 0.5, '0.5'],
+] as const)('cssIfNotEmpty applies numeric %s=%s using jQuery css semantics', (property, value, expected) => {
+  const nodes = $('<div></div><div></div>');
+  expect(nodes.cssIfNotEmpty(property, value)).toBe(nodes);
+  expect(nodes.toArray().map(node => node.style.getPropertyValue(property))).toEqual([expected, expected]);
+});
+
+test('cssIfNotEmpty forwards callback context, arguments and results to jQuery', () => {
+  const nodes = $('<div></div><div></div><div></div>').css('padding', '12px');
+  const calls: [HTMLElement, number, string][] = [];
+  expect(nodes.cssIfNotEmpty('padding', function (index, value) {
+    calls.push([this, index, value]);
+    return index === 0 ? 0 : index === 1 ? '' : undefined;
+  })).toBe(nodes);
+  expect(calls).toEqual(nodes.toArray().map((node, index) => [node, index, '12px']));
+  expect(nodes.toArray().map(node => node.style.padding)).toEqual(['0px', '', '12px']);
+  const callback = vi.fn();
+  $().cssIfNotEmpty('padding', callback);
+  expect(callback).not.toHaveBeenCalled();
 });
 
 test('addClassIfNotEmpty skips empty inputs and preserves chainability for strings and arrays', () => {

@@ -27,20 +27,27 @@ const buttons: JQuery<HTMLButtonElement> = $('button');
 const sameButtons: JQuery<HTMLButtonElement> = jQuery('button');
 const empty: boolean = buttons.isEmpty();
 const title: string | undefined = sameButtons.title();
-buttons.title('ready').onClick(target => {
+buttons.title('ready').onClick(event => {
   // @ts-expect-error The event origin may be an SVG node, not an HTMLElement.
-  target.click();
-  if (target instanceof HTMLElement) {
-    target.focus();
+  event.target.click();
+  if (event.target instanceof HTMLElement) {
+    event.target.focus();
   }
 });
-buttons.onClick((target, originalEvent) => {
-  const origin: EventTarget = target;
+buttons.onClick(event => {
+  const origin: EventTarget = event.target;
   // @ts-expect-error A click handler must not assume an HTML event origin.
-  const htmlOrigin: HTMLElement = target;
-  const nativeEvent: MouseEvent | undefined = originalEvent;
-  void [origin, htmlOrigin, nativeEvent];
+  const htmlOrigin: HTMLElement = event.target;
+  const boundButton: HTMLButtonElement = event.currentTarget;
+  const delegateButton: HTMLButtonElement = event.delegateTarget;
+  const nativeEvent: MouseEvent | undefined = event.originalEvent;
+  event.currentTarget.disabled = true;
+  event.preventDefault();
+  event.stopPropagation();
+  void [origin, htmlOrigin, nativeEvent, boundButton, delegateButton];
 }, new ClickOptions({ preventDefault: false }));
+// @ts-expect-error onClick receives one event, not a target and a separate native event.
+buttons.onClick((_target: EventTarget, _originalEvent: MouseEvent | undefined) => {});
 const collectedTexts: JQuery<Text> = buttons.textNodes('button, span', ['.ignore'] as const);
 buttons.textNodes(undefined, ['a']);
 // @ts-expect-error Text traversal only accepts DOM nodes.
@@ -107,6 +114,20 @@ const replacement: JQuery<HTMLInputElement> = buttons.replaceBy((nodes, index) =
   return $(document.createElement('input'));
 });
 buttons.cssImportant('padding', '20px');
+buttons.cssImportant('padding', 0)[0].disabled = true;
+buttons.cssIfNotEmpty('padding', 12).cssIfNotEmpty('opacity', 0)[0].disabled = true;
+buttons.cssIfNotEmpty('padding', function (index, value) {
+  const button: HTMLButtonElement = this;
+  const position: number = index;
+  const previousValue: string = value;
+  void [button, position, previousValue];
+  return index === 0 ? 0 : undefined;
+})[0].disabled = true;
+buttons.cssIfNotEmpty('padding', function () { this.disabled = true; });
+// @ts-expect-error jQuery css does not accept boolean values.
+buttons.cssIfNotEmpty('padding', false);
+// @ts-expect-error jQuery css callbacks cannot return boolean values.
+buttons.cssIfNotEmpty('padding', () => false);
 // @ts-expect-error CSS values must include their units explicitly where needed.
 buttons.cssImportant('padding', 20);
 // @ts-expect-error The abbreviated method was renamed.
@@ -166,6 +187,11 @@ buttons.tryAddClass('ready');
 // @ts-expect-error Text nodes do not have a CSS color.
 text.colorHex();
 svg.cssIfNotEmpty('fill', 'red').addClassIfNotEmpty(['ready'])[0].viewBox;
+svg.cssIfNotEmpty('opacity', function () {
+  const element: SVGSVGElement = this;
+  void element;
+  return 0;
+}).cssImportant('stroke-width', 0)[0].viewBox;
 void [replacement, svgNodes, htmlNodes, withFallback, onlyText, optionalColor, requiredColor,
   optionalHex, requiredHex, fallbackHex];
 
@@ -270,10 +296,76 @@ const unknownCollection: unknown = buttons;
 if ($.isJQuery(unknownCollection)) {
   const collection: JQuery<unknown> = unknownCollection;
   const item: unknown = collection[0];
+  const isVisible: boolean = collection.visible();
+  // @ts-expect-error An unknown collection may not contain Elements to show or hide.
+  collection.visible(true);
   collection.toArray();
   // @ts-expect-error Recognizing jQuery does not establish the element type.
   const buttonElement: HTMLButtonElement = collection[0];
-  void [item, buttonElement];
+  void [item, buttonElement, isVisible];
 }
 // @ts-expect-error A caller cannot claim an unchecked element type.
 $.isJQuery<HTMLButtonElement>(unknownCollection);
+
+const textVisibility: boolean = text.visible();
+const nodeVisibility: boolean = mixedNodesFrom.visible();
+const documentVisibility: boolean = $(document).visible();
+const fragmentVisibility: boolean = $(document.createDocumentFragment()).visible();
+const windowVisibility: boolean = $(window).visible();
+const objectVisibility: boolean = $({ value: 1 }).visible();
+const visibleButtons: JQuery<HTMLButtonElement> = buttons.visible(true);
+// @ts-expect-error Text supports the visibility getter, but not the setter.
+text.visible(false);
+// @ts-expect-error A Node collection may contain non-Elements.
+mixedNodesFrom.visible(true);
+// @ts-expect-error Documents cannot be shown or hidden.
+$(document).visible(false);
+// @ts-expect-error Window supports the getter, but not the setter.
+$(window).visible(true);
+// @ts-expect-error Plain objects support the getter, but not the setter.
+$({ value: 1 }).visible(false);
+void [textVisibility, nodeVisibility, documentVisibility, fragmentVisibility,
+  windowVisibility, objectVisibility, visibleButtons];
+
+// Selector results are independent of the source collection's element type.
+const ancestorForm: JQuery<HTMLFormElement> = buttons.ancestor('form');
+const ancestorSvg: JQuery<SVGSVGElement> = buttons.ancestor('svg', true, true);
+const explicitAncestor: JQuery<HTMLFormElement> = buttons.ancestor<HTMLFormElement>('.container');
+const foundInputs: JQuery<HTMLInputElement> = $(document).search('input');
+const foundCircles: JQuery<SVGCircleElement> = $(document.createDocumentFragment()).search('circle', false);
+const staticInputs: JQuery<HTMLInputElement> = $.search('input');
+const staticCircles: JQuery<SVGCircleElement> = $.search('circle');
+const explicitInputs: JQuery<HTMLInputElement> = buttons.search<HTMLInputElement>('.field');
+const explicitCircles: JQuery<SVGCircleElement> = $.search<SVGCircleElement>('.shape', false);
+const fallbackButtons: JQuery<HTMLButtonElement> = buttons.ifEmpty('button');
+const fallbackInputs: JQuery<HTMLButtonElement | HTMLInputElement> = buttons.ifEmpty('input');
+const fallbackCircles: JQuery<Text | SVGCircleElement> = text.ifEmpty('circle');
+const explicitFallback: JQuery<Text | HTMLInputElement> = text.ifEmpty<HTMLInputElement>('.field');
+// @ts-expect-error Ancestors need not be the same element type as their descendants.
+const ancestorButton: JQuery<HTMLButtonElement> = buttons.ancestor('form');
+// @ts-expect-error Searching a Document returns matching Elements, not Documents.
+const foundDocument: JQuery<Document> = $(document).search('input');
+// @ts-expect-error The source may be returned unchanged, so its type cannot be discarded.
+const fallbackOnlyInput: JQuery<HTMLInputElement> = buttons.ifEmpty('input');
+// @ts-expect-error Selectors cannot return Text nodes.
+buttons.ancestor<Text>('.container');
+// @ts-expect-error Selectors cannot return Text nodes.
+buttons.search<Text>('.field');
+// @ts-expect-error Selectors cannot return Text nodes.
+$.search<Text>('.field');
+// @ts-expect-error A selector fallback cannot return Text nodes.
+text.ifEmpty<Text>('.field');
+const textAncestor: JQuery<HTMLFormElement> = text.ancestor('form');
+const nodeAncestors: JQuery<HTMLFormElement> = mixedNodesFrom.ancestor('form');
+const nodeSvgAncestors: JQuery<SVGSVGElement> = mixedNodesFrom.ancestor('svg', true, true);
+const nodeExplicitAncestors: JQuery<HTMLFormElement> = mixedNodesFrom.ancestor<HTMLFormElement>('.container');
+// @ts-expect-error Ancestor traversal requires a Node collection.
+$({ value: 1 }).ancestor('form');
+// @ts-expect-error Window is not a Node.
+$(window).ancestor('form');
+// @ts-expect-error Searching descendants requires a Node collection.
+$({ value: 1 }).search('input');
+void [ancestorForm, ancestorSvg, explicitAncestor, foundInputs, foundCircles, staticInputs,
+  staticCircles, explicitInputs, explicitCircles, fallbackButtons, fallbackInputs,
+  fallbackCircles, explicitFallback, ancestorButton, foundDocument, fallbackOnlyInput,
+  textAncestor, nodeAncestors, nodeSvgAncestors, nodeExplicitAncestors];

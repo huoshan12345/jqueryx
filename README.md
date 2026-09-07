@@ -14,10 +14,8 @@ The package requires jQuery `^4.0.0`, builtinx `^0.3.3` and linqx `^0.3.4` as sh
 import '@huoshan12345/jqueryx';
 
 const button = $('<button>').title('Save').pointer();
-button.onClick(async target => {
-  if ($.isElement(target)) {
-    target.setAttribute('data-clicked', 'true');
-  }
+button.onClick(async event => {
+  event.currentTarget.setAttribute('data-clicked', 'true');
 });
 ```
 
@@ -217,8 +215,8 @@ All style setters affect every selected element and return `this`.
 | `inlineBlock()` | Sets `display: inline-block`. |
 | `flexWrap(value = 'wrap')` | Sets flex-wrap without changing display. |
 | `padding(value)` | Sets padding via jQuery css; accepts a CSS string or a number in pixels. |
-| `cssImportant(propertyName, value)` | Sets a CSS property (such as `background-color` or `--gap`) to a string with `!important`. Include units where needed. `''` removes it; non-string values throw TypeError. |
-| `cssIfNotEmpty(propertyName, value?)` | Calls jQuery css for nonempty strings. Skips undefined/`''`; applies `'0'`. Does not catch errors. |
+| `cssImportant(propertyName, value)` | Sets a CSS property (such as `background-color` or `--gap`) with `!important`. Accepts a CSS string with units where needed, or numeric `0`. `''` removes it. Values are converted to strings and passed directly to the browser without runtime validation. |
+| `cssIfNotEmpty(propertyName, value?)` | Accepts the same string, number, or callback value as jQuery css. Skips directly supplied undefined/`''`; applies numeric `0`. Callbacks retain jQuery behavior, including clearing with `''` and skipping with undefined. Does not catch errors. |
 | `addClassIfNotEmpty(classNames?)` | Calls jQuery addClass for a nonempty string or string array. Skips undefined, `''`, `[]`; does not catch errors. |
 | `color()` | First computed color string, or undefined for an empty collection. |
 | `color(value, important = false)` | Sets color via jQuery css, or cssImportant when requested. `''` clears inline color. |
@@ -228,7 +226,7 @@ All style setters affect every selected element and return `this`.
 
 ```ts
 const panel = $('<div>').flex().flexWrap().padding(12).visible(true);
-panel.cssImportant('--gap', '1rem').cssIfNotEmpty('opacity', '0.8');
+panel.cssImportant('--gap', '1rem').cssImportant('padding', 0).cssIfNotEmpty('opacity', 0.8);
 panel.addClassIfNotEmpty(['panel', 'ready']).color('rgba(255, 0, 0, 0.5)');
 console.log(panel.colorHex(true)); // '#FF000080'
 const label = $('<span>').inlineBlock().underline().pointer();
@@ -249,7 +247,9 @@ $.scrollToNode('#results', { behavior: 'smooth', block: 'center' });
 
 ### `onClick(handler, options?)`
 
-Binds clicks to selected HTML elements and returns `this`. The callback receives `(target: EventTarget, originalEvent?: MouseEvent)` and may return a value or promise. Target is the event origin, possibly a descendant such as SVG; narrow it before accessing element-specific members. `originalEvent` is absent for jQuery-triggered clicks.
+Binds clicks to selected HTML elements and returns `this`. The callback receives one `JQuery.ClickEvent<TElement, undefined, TElement, EventTarget>` and may return a value or promise. `event.currentTarget` is the bound element and retains the collection's element type. `event.target` is the event origin, possibly a descendant such as SVG; narrow it before accessing element-specific members. `event.originalEvent` is absent for jQuery-triggered clicks. Capture `currentTarget` before awaiting if you need it later, as jQuery may reuse the event during bubbling.
+
+Calls using the previous `(target, originalEvent)` callback should read `event.target` and `event.originalEvent` instead.
 
 Cancellation happens synchronously before the callback, even for async handlers. Return values, including false, are ignored. Options accept `Partial<ClickOptions>`:
 
@@ -267,10 +267,9 @@ Different selected elements can run concurrently. Overlapping bindings share poi
 import { ClickOptions } from '@huoshan12345/jqueryx';
 
 const options = new ClickOptions({ stopPropagation: true, onError: error => console.error(error) });
-$('button.save').onClick(async target => {
-  if ($.isElement(target)) {
-    target.setAttribute('data-saved', 'true');
-  }
+$('button.save').onClick(async event => {
+  const button = event.currentTarget;
+  button.setAttribute('data-saved', 'true');
 }, options);
 ```
 

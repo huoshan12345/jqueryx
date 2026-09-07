@@ -171,19 +171,44 @@ describe('onClick', () => {
     await flushHandlers();
   });
 
-  test('respects disabled cancellation options and retains the callback target', async () => {
+  test('passes the jQuery event with the actual origin and typed bound element', async () => {
     const parent = $('<div><button><span></span></button></div>').appendTo(document.body);
     const button = parent.find('button');
     const target = button.find('span')[0];
     const ancestor = vi.fn();
-    const handler = vi.fn();
+    const sibling = vi.fn();
+    const onError = vi.fn();
+    const handler = vi.fn((event: JQuery.ClickEvent<HTMLButtonElement, undefined, HTMLButtonElement, EventTarget>) => {
+      expect(event.target).toBe(target);
+      expect(event.currentTarget).toBe(button[0]);
+      expect(event.delegateTarget).toBe(button[0]);
+    });
     parent.on('click', ancestor);
-    expect(button.onClick(handler, { preventDefault: false })).toBe(button);
+    expect(button.onClick(handler, { preventDefault: false, onError })).toBe(button);
+    button.on('click', sibling);
 
     const event = click(target);
     expect(event.defaultPrevented).toBe(false);
     expect(ancestor).toHaveBeenCalledOnce();
-    expect(handler).toHaveBeenCalledWith(target, event);
+    expect(handler).toHaveBeenCalledExactlyOnceWith(sibling.mock.calls[0][0]);
+    expect(handler.mock.calls[0][0]).toBe(sibling.mock.calls[0][0]);
+    expect(handler.mock.calls[0][0].originalEvent).toBe(event);
+    await flushHandlers();
+    expect(onError).not.toHaveBeenCalled();
+  });
+
+  test('allows the callback to cancel the event and stop bubbling', async () => {
+    const root = $('<div><button></button></div>').appendTo(document.body);
+    const button = root.find('button');
+    const ancestor = vi.fn();
+    root.on('click', ancestor);
+    button.onClick(event => {
+      event.preventDefault();
+      event.stopPropagation();
+    }, { preventDefault: false });
+
+    expect(click(button[0]).defaultPrevented).toBe(true);
+    expect(ancestor).not.toHaveBeenCalled();
     await flushHandlers();
   });
 
@@ -224,7 +249,7 @@ describe('onClick', () => {
     const buttons = $('<button></button><button></button>').appendTo(document.body);
     const first = deferred();
     const second = deferred();
-    const handler = vi.fn(target => target === buttons[0] ? first.promise : second.promise);
+    const handler = vi.fn(event => event.currentTarget === buttons[0] ? first.promise : second.promise);
     buttons.onClick(handler);
 
     click(buttons[0]);
@@ -295,11 +320,16 @@ describe('onClick', () => {
 
   test('keeps synthetic event compatibility and ignores handler return values', async () => {
     const button = $('<button>');
-    const handler = vi.fn(() => false);
+    const handler = vi.fn((_event: JQuery.ClickEvent<HTMLElement, undefined, HTMLElement, EventTarget>) => false);
     button.onClick(handler, { preventDefault: false });
     const event = $.Event('click');
     button.triggerHandler(event);
-    expect(handler).toHaveBeenCalledWith(button[0], undefined);
+    expect(handler).toHaveBeenCalledExactlyOnceWith(event);
+    const received = handler.mock.calls[0][0];
+    expect(received).toBe(event);
+    expect(received.target).toBe(button[0]);
+    expect(received.currentTarget).toBe(button[0]);
+    expect(received.originalEvent).toBeUndefined();
     expect(event.isDefaultPrevented()).toBe(false);
     await flushHandlers();
   });
@@ -360,7 +390,7 @@ test.each(['click', 'keydown', 'enter'] as const)(
       }
     };
     if (kind === 'click') {
-      button.onClick(handler, { onError });
+      button.onClick(event => handler(event.target), { onError });
       target.dispatchEvent(new MouseEvent('click', { bubbles: true }));
     } else {
       if (kind === 'keydown') {

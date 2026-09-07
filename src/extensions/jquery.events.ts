@@ -5,15 +5,15 @@ declare global {
   interface JQuery<TElement = HTMLElement> {
     /**
      * Cancels events synchronously according to options, then invokes the handler.
-     * Processing is guarded per binding and bound element; target is event.target
-     * and may be a descendant of the bound element. Narrow its type before using
-     * element-specific members. originalEvent is the native
+     * Receives the jQuery event: currentTarget is the bound element, while target
+     * may be a descendant such as SVG. Processing is guarded per binding and bound element.
+     * originalEvent is the native
      * MouseEvent, or undefined for a jQuery-triggered click.
      * Handler return values are ignored. Errors go to onError, or console.error if omitted.
      */
     onClick(
       this: this & JQuery<HTMLElement>,
-      handler: (target: EventTarget, originalEvent?: MouseEvent) => Awaitable<unknown>,
+      handler: (event: JQuery.ClickEvent<TElement, undefined, TElement, EventTarget>) => Awaitable<unknown>,
       options?: Partial<ClickOptions>,
     ): this;
     /**
@@ -109,8 +109,9 @@ async function runEventHandler(
   }
 }
 
-$.fn.onClick = function (
-  handler: (target: EventTarget, originalEvent?: MouseEvent) => Awaitable<unknown>,
+$.fn.onClick = function <T extends JQuery<HTMLElement>>(
+  this: T,
+  handler: (event: JQuery.ClickEvent<T[number], undefined, T[number], EventTarget>) => Awaitable<unknown>,
   options?: Partial<ClickOptions>,
 ) {
   const settings = new ClickOptions(options);
@@ -138,7 +139,7 @@ $.fn.onClick = function (
 
     void runEventHandler(async () => {
       try {
-        await handler(event.target, event.originalEvent);
+        await handler(event);
       } finally {
         if (settings.disableWhileProcessing) {
           processingElements.delete(boundElement);
