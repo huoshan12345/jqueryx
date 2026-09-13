@@ -123,13 +123,11 @@ try {
   assert.equal($().hasUrlHref(), false);
 
   const independentButton = document.implementation.createHTMLDocument().createElement('button');
-  assert.ok($.isElement(independentButton));
   assert.equal($.from(independentButton)[0], independentButton);
   const frame = document.createElement('iframe');
   document.body.append(frame);
   try {
     const foreignButton = frame.contentDocument!.createElement('button');
-    assert.ok($.isElement(foreignButton));
     assert.deepEqual($.from([foreignButton, independentButton]).toArray(), [foreignButton, independentButton]);
     foreignButton.innerHTML = 'a<b>b</b>c';
     assert.equal($(foreignButton).ownText(), 'ac');

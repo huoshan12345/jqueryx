@@ -7,7 +7,7 @@ declare global {
 
 $.scrollToNode = function (element: string | Element | JQuery<Element>, options?: ScrollIntoViewOptions) {
   let node: Element | undefined;
-  if ($.isElement(element)) {
+  if (BuiltinX.isElement(element)) {
     node = element;
   } else if (typeof element === "string") {
     node = $(element).get(0);

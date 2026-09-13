@@ -21,8 +21,6 @@ test.each([
   const first = owner.createElement('button');
   const second = owner.createElementNS('http://www.w3.org/2000/svg', 'svg');
   root.append(first, second);
-  expect($.isElement(first)).toBe(true);
-  expect($.isElement(second)).toBe(true);
   expect($.from(first).toArray()).toEqual([first]);
   expect($.from([first, second]).toArray()).toEqual([first, second]);
   expect($.from(root.children).toArray()).toEqual([first, second]);
@@ -33,7 +31,6 @@ test('recognizes XML elements without a window', () => {
   const owner = document.implementation.createDocument('urn:example', 'root');
   const element = owner.documentElement;
   expect(owner.defaultView).toBeNull();
-  expect($.isElement(element)).toBe(true);
   expect($.from(element)[0]).toBe(element);
   expect($.from([element])[0]).toBe(element);
 });
@@ -44,19 +41,16 @@ test('recognizes adopted elements whose prototype belongs to another realm', () 
   document.adoptNode(foreign);
   expect(foreign.ownerDocument).toBe(document);
   expect(foreign instanceof Element).toBe(false);
-  expect($.isElement(foreign)).toBe(true);
   expect($.from([foreign])[0]).toBe(foreign);
 
   const local = document.createElement('input');
   owner.adoptNode(local);
-  expect($.isElement(local)).toBe(true);
   expect($.from(local)[0]).toBe(local);
 });
 
 test('recognizes elements after their iframe has been removed', () => {
   const element = frameDocument().createElement('button');
   document.querySelector('iframe')!.remove();
-  expect($.isElement(element)).toBe(true);
   expect($.from([element])[0]).toBe(element);
 });
 
@@ -66,29 +60,6 @@ test('accepts mixed-realm collections without cloning their elements', () => {
   const independent = document.implementation.createHTMLDocument().createElement('div');
   const result = $.from([local, foreign, independent]);
   expect(result.toArray()).toEqual([local, foreign, independent]);
-});
-
-test.each([
-  ['null', null],
-  ['undefined', undefined],
-  ['string', '<div>'],
-  ['number', 1],
-  ['document', document],
-  ['text', document.createTextNode('text')],
-  ['comment', document.createComment('comment')],
-  ['fragment', document.createDocumentFragment()],
-  ['plain object', {}],
-  ['element-shaped object', { nodeType: 1, tagName: 'DIV', ownerDocument: document }],
-  ['inherited prototype', Object.create(Element.prototype)],
-] as const)('isElement rejects %s', (_, value) => {
-  expect($.isElement(value)).toBe(false);
-});
-
-test('isElement does not need to read an untrusted ownerDocument property', () => {
-  const value = Object.defineProperty({}, 'ownerDocument', {
-    get() { throw new Error('unexpected access'); },
-  });
-  expect($.isElement(value)).toBe(false);
 });
 
 test('from still rejects non-node collection members', () => {
@@ -116,7 +87,6 @@ test.each([
     owner.createElement('div').attachShadow({ mode: 'open' }),
   ];
   for (const node of nodes) {
-    expect($.isNode(node), node.nodeName).toBe(true);
     expect($.from(node).toArray()).toEqual([node]);
     expect($.from([node]).toArray()).toEqual([node]);
     const wrapped = $(node);
@@ -128,7 +98,6 @@ test.each([
 test('from supports XML CDATA nodes without a window', () => {
   const owner = document.implementation.createDocument(null, 'root');
   const cdata = owner.createCDATASection('text');
-  expect($.isNode(cdata)).toBe(true);
   expect($.from(cdata)[0]).toBe(cdata);
   expect($.from([cdata])[0]).toBe(cdata);
 });
@@ -175,33 +144,8 @@ test('from recognizes adopted Text nodes and nodes retained after removing their
   document.adoptNode(text);
   document.querySelector('iframe')!.remove();
   expect(text instanceof Text).toBe(false);
-  expect($.isNode(text)).toBe(true);
-  expect($.isNode(comment)).toBe(true);
   expect($.from([text])[0]).toBe(text);
   expect($.from(comment)[0]).toBe(comment);
-});
-
-test.each([
-  ['null', null],
-  ['undefined', undefined],
-  ['number', 1],
-  ['string', 'text'],
-  ['window', window],
-  ['plain object', {}],
-  ['node-shaped object', { nodeType: 3, nodeName: '#text', ownerDocument: document }],
-  ['inherited Node prototype', Object.create(Node.prototype)],
-] as const)('isNode rejects %s', (_, value) => {
-  expect($.isNode(value)).toBe(false);
-});
-
-test('isNode does not access untrusted nodeType or ownerDocument getters', () => {
-  const getProperty = vi.fn(() => { throw new Error('unexpected access'); });
-  const value = Object.defineProperties({}, {
-    nodeType: { get: getProperty },
-    ownerDocument: { get: getProperty },
-  });
-  expect($.isNode(value)).toBe(false);
-  expect(getProperty).not.toHaveBeenCalled();
 });
 
 test('from preserves existing selector, JQuery and empty-input behavior', () => {

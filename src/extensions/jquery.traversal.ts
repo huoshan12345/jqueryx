@@ -80,7 +80,7 @@ $.fn.ancestor = function <TMatch extends Element = HTMLElement>(
   return result as JQuery<TMatch>;
 
   function findAncestor(e: Node, outermost: boolean, includeSelf: boolean) {
-    let p = includeSelf && $.isElement(e)
+    let p = includeSelf && BuiltinX.isElement(e)
       ? $(e)
       : $(e).parent<Element>();
 

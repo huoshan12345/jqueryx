@@ -385,7 +385,7 @@ test.each(['click', 'keydown', 'enter'] as const)(
     const onError = vi.fn();
     const handler = (origin: EventTarget) => {
       received = origin;
-      if ($.isElement(origin)) {
+      if (BuiltinX.isElement(origin)) {
         origin.setAttribute('data-handled', 'yes');
       }
     };

@@ -39,7 +39,7 @@ function textContent<T extends JQuery<Node>>(this: T, value?: string): T | strin
     const texts = item.textNodes();
     if (texts.isEmpty()) {
       const root = item[0];
-      const target = $.isElement(root)
+      const target = BuiltinX.isElement(root)
         && root.namespaceURI === 'http://www.w3.org/1999/xhtml'
         && root.localName === 'template'
         ? (root as HTMLTemplateElement).content

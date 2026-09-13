@@ -63,7 +63,7 @@ buttons.onClick(() => buttons.addClass('clicked'), {
 buttons.onKeyDown((target, key) => {
   // @ts-expect-error The event origin need not implement HTMLElement.click().
   target.click();
-  if ($.isElement(target)) {
+  if (BuiltinX.isElement(target)) {
     target.setAttribute('data-key', key);
   }
 }, {
@@ -231,11 +231,6 @@ const detachedButton = document.implementation.createHTMLDocument().createElemen
 const fromButton: JQuery<HTMLButtonElement> = $.from(detachedButton);
 const fromButtons: JQuery<HTMLButtonElement> = $.from([detachedButton]);
 const fromSvg: JQuery<SVGSVGElement> = $.from(svg[0]);
-const unknownElement: unknown = detachedButton;
-if ($.isElement(unknownElement)) {
-  const element: Element = unknownElement;
-  void element;
-}
 // @ts-expect-error Element input must retain its actual subtype.
 const fromInput: JQuery<HTMLInputElement> = $.from(detachedButton);
 void [fromButton, fromButtons, fromSvg, fromInput];
@@ -272,7 +267,7 @@ const nodeArrayLike: ArrayLike<Node> = { 0: rawText, 1: rawComment, 2: rawFragme
 const mixedNodesFrom: JQuery<Node> = $.from(nodeArrayLike);
 const nodeAndSelectorFrom: JQuery<Node> = $.from<Node>(['button', textFrom]);
 const unknownNode: unknown = rawText;
-if ($.isNode(unknownNode)) {
+if (BuiltinX.isNode(unknownNode)) {
   const recognized: JQuery<Node> = $.from(unknownNode);
   // @ts-expect-error Recognizing a Node does not establish that it is an Element.
   const element: Element = unknownNode;

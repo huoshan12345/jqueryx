@@ -86,8 +86,6 @@ const wrapped = nodes.enumerate().select(node => node.title('item')).toArray();
 | `$.from(selectorOrHtml)` | Evaluates the string through jQuery. |
 | `$.from(arrayLike)` | Flattens one level of strings, Nodes and jQuery collections through jQuery `add`, including its ordering and deduplication rules for connected nodes. |
 | `$.isJQuery(value)` | Type guard for collections from the shared jQuery instance; does not validate members. |
-| `$.isElement(value)` | Native Element type guard across realms, including documents without a window. |
-| `$.isNode(value)` | Native Node type guard across realms, including non-Element nodes. |
 
 `$.from<T extends Node>()` preserves typed Node collections. Arrays and NodeLists are accepted; convert arbitrary iterables such as Sets/generators to arrays first. Unsupported inputs/group members are logged and throw TypeError. Shared jQuery collections are returned as-is without validating contents. Nested arrays are not recursively flattened. Invalid selectors propagate jQuery errors.
 
@@ -96,7 +94,7 @@ const text = document.createTextNode('hello');
 const fragment = document.createDocumentFragment();
 fragment.append(text);
 const nodes = $.from<Node>([text, fragment]);
-console.log($.isNode(text), $.isElement(text)); // true, false
+console.log(BuiltinX.isNode(text), BuiltinX.isElement(text)); // true, false
 console.log($.isJQuery(nodes), $.from(nodes) === nodes); // true, true
 ```
 
