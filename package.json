@@ -1,7 +1,7 @@
 {
   "name": "@huoshan12345/jqueryx",
   "author": "huoshan12345",
-  "version": "0.0.4",
+  "version": "0.0.5",
   "description": "Extensions for JavaScript built-ins and web platform objects",
   "homepage": "https://github.com/huoshan12345/jqueryx#readme",
   "repository": {
@@ -41,7 +41,7 @@
   "devDependencies": {
     "@phiberber/pinst": "^3.0.1",
     "@types/node": "^26.4.1",
-    "builtinx": "^0.4.0",
+    "builtinx": "^0.4.1",
     "jquery": "^4.0.0",
     "linqx": "^0.3.4",
     "npm-run-all2": "^9.0.3",
@@ -56,7 +56,7 @@
     "@types/jquery": "^4.0.1"
   },
   "peerDependencies": {
-    "builtinx": "^0.4.0",
+    "builtinx": "^0.4.1",
     "jquery": "^4.0.0",
     "linqx": "^0.3.4"
   }
